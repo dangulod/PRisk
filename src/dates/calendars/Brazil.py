@@ -154,3 +154,4 @@ if __name__ == "__main__":
     x = Date(18, 6, 2018)
     print(x.weekday())
     print(cal.isHoliday(x))
+    print(cal.businessDaysBetween( Date( 1, 1, 2012), Date(1, 1, 2013) ))

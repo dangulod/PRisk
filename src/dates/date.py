@@ -208,6 +208,21 @@ class Date:
         else:
             raise ValueError("Date must be compared with Dates")
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __gt__(self, other):
+        if isinstance(other, Date):
+            return self.serialNumber > other.serialNumber
+        else:
+            raise ValueError("Date must be compared with Dates")
+
+    def __ge__(self, other):
+        if isinstance(other, Date):
+            return self.serialNumber >= other.serialNumber
+        else:
+            raise ValueError("Date must be compared with Dates")
+
     def __add__(self, other):
         if isinstance(other, Days):
             return serialToDate( self.serialNumber + other.d )
@@ -223,7 +238,7 @@ class Date:
             days = monthLength( m, isleap(int(y)) )
             if ( d > days ): d = days
             return Date( int(d), int(m), int(y) )
-        if isinstance(other, Quarter):
+        if isinstance(other, Quarters):
             return self + Months(other.q * 3)
         if isinstance(other, Semesters):
             return self + Months(other.s * 6)
@@ -245,7 +260,7 @@ class Date:
             days = monthLength(m, isleap(int(y)))
             if (d > days): d = days
             return Date(int(d), int(m), int(y))
-        if isinstance(other, Quarter):
+        if isinstance(other, Quarters):
             return self - Months(other.q * 4)
         if isinstance(other, Semesters):
             return self - Months(other.s *6)
@@ -297,7 +312,7 @@ class Months:
         self.m = m
 
 
-class Quarter:
+class Quarters:
     def __init__(self, q):
         if (( not isinstance(q, int) or not q > 0 )):
             raise ValueError("q must be a positive integer")
@@ -319,5 +334,40 @@ class Years:
 
 
 if __name__ == "__main__":
-    x = Date(31, 3, 2012)
-    print( x - Months(1) == Date(29, 2, 2012))
+
+    # Create object Date from day, month and year
+    # Only defined between 01-01-1901 and 31-12-2199
+
+    x = Date(31, 3, 2012)   # 31-03-2012
+    y = Date(30, 6, 2012)   # 30-06-2012
+
+    # Methods defined for class Date:
+
+    x.day()                 # 1 - 31
+    x.month()               # 1 - 12
+    x.year()                # 1901 - 2199
+    x.dayOfYear()           # 1 - 365/366
+    x.weekday()             # 1 (Monday) - 7
+    print(x)                # 31-3-2012
+
+    # Count number of days between two dates
+
+    x - y                   # -91
+    y - x                   # 91
+
+    # Adds periods like: Days(n), Weeks(n), Months(n), Quarters(n), Semesters(n), Years(n)
+
+    print( x + Days(365) )      # 31-03-2013
+    print( x + Months(12) )     # 31-03-2013
+    print( x + Quarters(4) )    # 31-03-2013
+    print( x + Semesters(2) )   # 31-03-2013
+    print( x + Years(1) )       # 31-03-2013
+
+    # Logical operators
+
+    print( x == y )             # False
+    print( x != y )             # True
+    print( x > y )              # False
+    print( x < y )              # True
+    print( x <= y )             # True
+    print( x >= y )             # False

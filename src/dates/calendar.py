@@ -13,8 +13,14 @@ class Calendar:
     def isWeekend(self, date):
         return True if ( date.weekday() > 5 ) else False
 
-    def isEndOfMonth(self, date):
+    def isEndOfMonth(self, date):                   # Not implemented
         pass
+
+    def nextBusinessDay(self, date):
+        day = date
+        while (self.isHoliday(day)):
+            day += Days(1)
+        return day
 
     def businessDaysBetween(self, date_from, date_to):
         if ( not isinstance(date_from, Date) or not isinstance(date_to, Date) ):
@@ -32,3 +38,5 @@ class Calendar:
 if __name__ == "__main__":
     x = Calendar()
     print(x.businessDaysBetween(Date( 1, 1, 2018), Date( 1, 1, 2019)))
+    y = x.nextBusinessDay(Date(22, 6, 2018))
+    print(y)

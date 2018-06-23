@@ -1,7 +1,6 @@
 from src.dates.date import Date, Days, Weeks, Months, Quarters, Semesters, Years
 from src.dates.calendar import Calendar
 from src.dates.calendars.Brazil import Brazil
-import numpy as np
 
 class Product:
     def __init__(self):
@@ -20,15 +19,28 @@ class Bond(Product):
         self.curve_irr    = curve_irr
         self.curve_spread = curve_spread
         self.coupon       = coupon,
-        self.c_frequency  = c_frequency
+        self.c_frequency  = int(12 / c_frequency)
         self.fix_flo      = fix_flo
         self.calendar     = calendar
 
-    def couponsDate(self):
-        pass
+    def couponPayment(self, val_date):
+        if (val_date > self.matDate): return 0
+        i = 1
+        coup = [self.matDate]
+        while (( self.matDate - Months(self.c_frequency * i) >= val_date ) and
+               ( self.matDate - Months(self.c_frequency * i) > self.startDate )):
+            day = self.calendar.nextBusinessDay(self.matDate - Months(self.c_frequency * i))
+            coup = [day] + coup
+            i += 1
+        return coup
 
-    def couponsPayment(self):
-        pass
+    def couponDays(self, val_date):
+        dates = self.couponPayment(val_date)
+        l     = (len(dates) - 1)
+        days  = [0] * l
+        for i in range(0, l):
+            days[i] = dates[i + 1] - dates[i]                       #  se deben acumular para el factor de descuento
+        return days
 
     def NPV(self, val_date):
         return self.nominal
@@ -42,6 +54,14 @@ class BondInf(Bond):
         self.day    = day
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
+
+    def couponDays(self, val_date):
+        dates = self.couponPayment(val_date)
+        l     = (len(dates) - 1)
+        days  = [0] * l
+        for i in range(0, l):
+            days[i] = self.calendar.businessDaysBetween(dates[i], dates[i + 1])
+        return days
 
     def NPV(self, val_date):
         return self.nominal
@@ -85,23 +105,30 @@ class Portfolio:
 
 if __name__ == "__main__":
 
+    val_date = Date(29,12, 2005)
     carter = Portfolio()
 
-    carter.append(Bond(nominal = 1, startDate = Date( 3, 4, 2015), matDate = Date(30, 7, 2030,),
-                       base = "ACT/ACT", curve_irr = "ES_BOND", curve_spread = "iBoxx",
-                       coupon = 0.0178246127679505, c_frequency = 1, fix_flo = True)
-                  )
+    b1 = Bond(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2030, ),
+              base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
+              coupon=0.0178246127679505, c_frequency=6, fix_flo=True)
 
-    carter.append(Bond(nominal = 2, startDate = Date(16,10, 2105), matDate = Date(31,10, 2044),
-                       base = "ACT/ACT", curve_irr = "ES_BOND", curve_spread = "iBoxx",
-                       coupon = 0.0223354303582122, c_frequency  = 1, fix_flo = True)
-                  )
+    carter.append(b1)
 
-    carter.append(BondInf(nominal = 1000, startDate = Date(15, 5, 2015), matDate = Date(15, 5, 2015),
-                          base = "BUSS/252", curve_irr = "BR_BOND", curve_spread = "iBoxx", coupon = 0,
-                          c_frequency = 1, fix_flo = True, day = 15, IPCA = 1.532670225, IPCA_p = 1))
+    b2 = Bond(nominal = 2, startDate = Date(16,10, 2105), matDate = Date(31,10, 2044),
+              base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
+              coupon=0.0223354303582122, c_frequency=1, fix_flo=True)
+
+    carter.append(b2)
+
+    b3 = BondInf(nominal = 1000, startDate = Date(15, 5, 2005), matDate = Date(15, 5, 2015),
+                 base="BUSS/252", curve_irr="BR_BOND", curve_spread="iBoxx", coupon=0,
+                 c_frequency=1, fix_flo=True, day=15, IPCA=1.532670225, IPCA_p=1)
+
+    carter.append(b3)
 
     carter.append(Cash(3))
 
-    print(carter.NPV(Date(29,12, 2012)))
+    # print(carter.NPV(Date(29,12, 2012)))
 
+    c = b1.couponDays(val_date)
+    for i in c: print(i)

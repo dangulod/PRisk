@@ -151,7 +151,7 @@ class Brazil(Calendar):
 
 if __name__ == "__main__":
     cal = Brazil()
-    x = Date(18, 6, 2018)
-    print(x.weekday())
-    print(cal.isHoliday(x))
-    print(cal.businessDaysBetween( Date( 1, 1, 2012), Date(1, 1, 2013) ))
+    gen = Calendar()
+    print( Date(1, 1, 2019) - Date(1, 1, 2018) )
+    print( gen.businessDaysBetween(Date( 1, 1, 2018), Date( 1, 1, 2019)) )
+    print( cal.businessDaysBetween(Date(1, 1, 2018), Date(1, 1, 2019)) )

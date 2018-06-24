@@ -250,6 +250,8 @@ class Date:
             return self.serialNumber - other.serialNumber
         if isinstance(other, Days):
             return serialToDate( self.serialNumber - other.d )
+        if isinstance(other, Weeks):
+            return serialToDate(self.serialNumber - other.w * 7)
         if isinstance(other, Months):
             y = self.year()
             m = self.month()

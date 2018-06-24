@@ -38,8 +38,10 @@ class Bond(Product):
         dates = self.couponPayment(val_date)
         l     = (len(dates) - 1)
         days  = [0] * l
+        n = 0
         for i in range(0, l):
-            days[i] = dates[i + 1] - dates[i]                       #  se deben acumular para el factor de descuento
+            n += dates[i + 1] - dates[i]
+            days[i] = n                       #  se deben acumular para el factor de descuento
         return days
 
     def NPV(self, val_date):
@@ -59,8 +61,10 @@ class BondInf(Bond):
         dates = self.couponPayment(val_date)
         l     = (len(dates) - 1)
         days  = [0] * l
+        n = 0
         for i in range(0, l):
-            days[i] = self.calendar.businessDaysBetween(dates[i], dates[i + 1])
+            n      += self.calendar.businessDaysBetween(dates[i], dates[i + 1])
+            days[i] = n
         return days
 
     def NPV(self, val_date):
@@ -110,7 +114,7 @@ if __name__ == "__main__":
 
     b1 = Bond(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2030, ),
               base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
-              coupon=0.0178246127679505, c_frequency=6, fix_flo=True)
+              coupon=0.0178246127679505, c_frequency=1, fix_flo=True)
 
     carter.append(b1)
 

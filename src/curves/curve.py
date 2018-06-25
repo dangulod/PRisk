@@ -28,6 +28,7 @@ def splines(x, y, new_days):
     CS= CubicSpline(x, y)
     return CS(new_days)
 
+
 def linear(x1, x2, y1, y2, x):
     m = (y1 - y2) / (x1 - x2)
     y = (x - x2) * m + y2

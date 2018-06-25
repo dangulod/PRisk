@@ -9,19 +9,30 @@ class Product:
     def NPV(self, val_date):
         pass
 
-class Bond(Product):
+
+class BondZeroCoupon(Product):
+    def __init__(self, nominal, startDate, matDate, base, curve_irr,
+                 curve_spread, calendar = Calendar()):
+        self.nominal = nominal
+        self.startDate = startDate
+        self.matDate = matDate
+        self.base = base
+        self.curve_irr = curve_irr
+        self.curve_spread = curve_spread
+        self.calendar = calendar
+
+    def NPV(self, val_date):
+        return self.nominal
+
+
+class Bond(BondZeroCoupon):
     def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
                  c_frequency, fix_flo, calendar = Calendar()):
-        self.nominal      = nominal
-        self.startDate    = startDate
-        self.matDate      = matDate
-        self.base         = base
-        self.curve_irr    = curve_irr
-        self.curve_spread = curve_spread
+        super().__init__(nominal, startDate, matDate, base,
+                         curve_irr, curve_spread, calendar)
         self.coupon       = coupon,
         self.c_frequency  = int(12 / c_frequency)
-        self.fix_flo      = fix_flo
-        self.calendar     = calendar
+        self.fix_flo      = fix_flo                     # Eliminar
 
     def couponPayment(self, val_date):
         if (val_date > self.matDate): return 0
@@ -41,8 +52,22 @@ class Bond(Product):
         n = 0
         for i in range(0, l):
             n += dates[i + 1] - dates[i]
-            days[i] = n                       #  se deben acumular para el factor de descuento
+            days[i] = n
         return days
+
+    def NPV(self, val_date):
+        return self.nominal
+
+
+class BondZeroCouponInf(BondZeroCoupon):
+    def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
+                 c_frequency, fix_flo, day, IPCA, IPCA_p, calendar = Brazil()):
+        super().__init__(nominal, startDate, matDate, base,
+                         coupon, c_frequency, fix_flo,
+                         curve_irr, curve_spread, calendar = calendar)
+        self.day    = day
+        self.IPCA   = IPCA
+        self.IPCA_p = IPCA_p
 
     def NPV(self, val_date):
         return self.nominal
@@ -51,8 +76,9 @@ class Bond(Product):
 class BondInf(Bond):
     def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
                  c_frequency, fix_flo, day, IPCA, IPCA_p, calendar = Brazil()):
-        super(BondInf, self).__init__(nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
-                 c_frequency, fix_flo, calendar = calendar)
+        super().__init__(nominal, startDate, matDate, base,
+                         curve_irr, curve_spread, coupon,
+                         c_frequency, fix_flo, calendar = calendar)
         self.day    = day
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
@@ -69,7 +95,6 @@ class BondInf(Bond):
 
     def NPV(self, val_date):
         return self.nominal
-
 
 class Equity(Product):
     def __init__(self, nominal, factor):

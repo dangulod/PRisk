@@ -23,7 +23,6 @@ class Bond(Product):
         self.fix_flo      = fix_flo
         self.calendar     = calendar
 
-    @classmethod
     def couponPayment(self, val_date):
         if (val_date > self.matDate): return 0
         i = 1
@@ -35,7 +34,6 @@ class Bond(Product):
             i += 1
         return coup
 
-    @classmethod
     def couponDays(self, val_date):
         dates = self.couponPayment(val_date)
         l     = (len(dates) - 1)

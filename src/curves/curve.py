@@ -44,7 +44,6 @@ class Curve:
         self.compounding = compounding
         self.interpolator = interpolator
 
-    @classmethod
     def rate(self, t):
         pos = which(self.days, t)
         if (pos == 0): return self.rates[0]
@@ -55,7 +54,6 @@ class Curve:
                                  self.rates[pos],
                                  t)
 
-    @classmethod
     def discount(self, t):
         d = t / 365
         return 1 / (self.compounding(self.rate(t), 1) ** d)

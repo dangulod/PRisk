@@ -23,6 +23,7 @@ class Bond(Product):
         self.fix_flo      = fix_flo
         self.calendar     = calendar
 
+    @classmethod
     def couponPayment(self, val_date):
         if (val_date > self.matDate): return 0
         i = 1
@@ -34,6 +35,7 @@ class Bond(Product):
             i += 1
         return coup
 
+    @classmethod
     def couponDays(self, val_date):
         dates = self.couponPayment(val_date)
         l     = (len(dates) - 1)
@@ -112,15 +114,15 @@ if __name__ == "__main__":
     val_date = Date(29,12, 2005)
     carter = Portfolio()
 
-    b1 = Bond(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2030, ),
+    b1 = Bond(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2030),
               base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
-              coupon=0.0178246127679505, c_frequency=1, fix_flo=True)
+              coupon=0.0178246127679505, c_frequency=12, fix_flo=True)
 
     carter.append(b1)
 
     b2 = Bond(nominal = 2, startDate = Date(16,10, 2105), matDate = Date(31,10, 2044),
               base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
-              coupon=0.0223354303582122, c_frequency=1, fix_flo=True)
+              coupon=0.0223354303582122, c_frequency=12, fix_flo=True)
 
     carter.append(b2)
 
@@ -134,5 +136,5 @@ if __name__ == "__main__":
 
     # print(carter.NPV(Date(29,12, 2012)))
 
-    c = b1.couponDays(val_date)
+    c = b1.couponPayment(val_date)
     for i in c: print(i)

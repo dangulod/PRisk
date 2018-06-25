@@ -19,6 +19,15 @@ def which(x, a):  # assert 'x' np.array & 'a' int
         if (x[i] > a): return i
 
 
+# Interpolator
+
+def splines(x, y, new_days):
+
+    from scipy.interpolate import CubicSpline
+
+    CS= CubicSpline(x, y)
+    return CS(new_days)
+
 def linear(x1, x2, y1, y2, x):
     m = (y1 - y2) / (x1 - x2)
     y = (x - x2) * m + y2
@@ -26,21 +35,16 @@ def linear(x1, x2, y1, y2, x):
 
 
 class Curve:
-    def __init__(self, name, base,
-                 days, rates,
+    def __init__(self, name, days, rates,
                  compounding=compounded,
                  interpolator=linear):
         self.name = name
-        self.base = base
         self.days = days
         self.rates = rates
-        self.tenors = self.days.size
         self.compounding = compounding
         self.interpolator = interpolator
 
-    def __str__(self):
-        return "Curve: " + self.name + ", base: " + self.base + ", with " + str(self.tenors) + " tenors"
-
+    @classmethod
     def rate(self, t):
         pos = which(self.days, t)
         if (pos == 0): return self.rates[0]
@@ -51,7 +55,19 @@ class Curve:
                                  self.rates[pos],
                                  t)
 
+    @classmethod
     def discount(self, t):
-        pos = which(self.days, t)
         d = t / 365
         return 1 / (self.compounding(self.rate(t), 1) ** d)
+
+if __name__ == "__main__":
+
+    days = np.array([180, 360, 720, 1080,
+                     1800, 2520, 3600])
+
+    rates = np.array([-0.00326, -0.00382, -0.00172, -0.00035,
+                      0.00401, 0.01029, 0.01908])
+
+    PT_BOND = Curve("PT_BOND", days, rates)
+
+    print(PT_BOND.rate(90))

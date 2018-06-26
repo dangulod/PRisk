@@ -15,7 +15,7 @@ def continuous(r, t):
 
 
 def which(x, a):  # assert 'x' np.array & 'a' int
-    for i in np.arange(x.size):
+    for i in range(0, len(x)):
         if (x[i] > a): return i
 
 
@@ -29,10 +29,19 @@ def splines(x, y, new_days):
     return CS(new_days)
 
 
-def linear(x1, x2, y1, y2, x):
+def linear(x, y, x0):
+    pos = which(x, x0)
+
+    if ( pos == 0 ): return x[0]
+
+    y1 = y[pos - 1]
+    y2 = y[pos]
+    x1 = x[pos - 1]
+    x2 = x[pos]
+
     m = (y1 - y2) / (x1 - x2)
-    y = (x - x2) * m + y2
-    return y
+    y0 = (x - x2) * m + y2
+    return y0
 
 
 class Curve:
@@ -45,15 +54,13 @@ class Curve:
         self.compounding = compounding
         self.interpolator = interpolator
 
-    def rate(self, t):
-        pos = which(self.days, t)
+    def rate(self, Date):
+        pos = which(self.days, Date)
         if (pos == 0): return self.rates[0]
 
-        return self.interpolator(self.days[pos - 1],
-                                 self.days[pos],
-                                 self.rates[pos - 1],
-                                 self.rates[pos],
-                                 t)
+        return self.interpolator(self.days,
+                                 self.rates,
+                                 Date)
 
     def discount(self, t):
         d = t / 365
@@ -61,12 +68,15 @@ class Curve:
 
 if __name__ == "__main__":
 
-    days = np.array([180, 360, 720, 1080,
-                     1800, 2520, 3600])
+    from src.dates.date import Date, Days
+
+    valDate = Date(31, 12, 2017)
+    days = [valDate + Days(180), valDate + Days(360), valDate + Days(720), valDate + Days(1080),
+            valDate + Days(1800), valDate + Days(2520), valDate + Days(3600)]
 
     rates = np.array([-0.00326, -0.00382, -0.00172, -0.00035,
                       0.00401, 0.01029, 0.01908])
 
     PT_BOND = Curve("PT_BOND", days, rates)
 
-    print(PT_BOND.rate(90))
+    print(PT_BOND.rate(Date(31, 1, 2019)))

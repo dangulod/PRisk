@@ -31,7 +31,7 @@ class Thirty360(DayCounter):
         return 360 * (yy2 - yy1) + 30 * (md2 - md1 - 1) + max(int(0), 30 - dd1) + min(int(30), dd2);
 
     @staticmethod
-    def yearFraction(d1, d2):
+    def yearFraction(d1, d2, calendar = None):
         return Thirty360.dayCount(d1, d2) / 360.0
 
 
@@ -40,7 +40,7 @@ class Actual360(DayCounter):
         pass
 
     @staticmethod
-    def yearFraction(d1, d2):
+    def yearFraction(d1, d2, calendar = None):
         return DayCounter.dayCount( d1, d2 ) / 360.0
 
 
@@ -49,7 +49,7 @@ class Actual365(DayCounter):
         pass
 
     @staticmethod
-    def yearFraction(d1, d2):
+    def yearFraction(d1, d2, calendar = None):
         return DayCounter.dayCount( d1, d2 ) / 365.0
 
 
@@ -58,12 +58,12 @@ class BUSS252(DayCounter):
         pass
 
     @staticmethod
-    def dayCount(d1, d2, calendar):
+    def dayCount(d1, d2, calendar = None):
         isinstance(calendar, Calendar)
         return calendar.businessDaysBetween(d1, d2)
 
     @staticmethod
-    def yearFraction(d1, d2, calendar):
+    def yearFraction(d1, d2, calendar = None):
         return BUSS252.dayCount(d1, d2, calendar) / 252
 
 

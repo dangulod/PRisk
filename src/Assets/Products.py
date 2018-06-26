@@ -2,7 +2,7 @@ from src.dates.date import Date, Days, Weeks, Months, Quarters, Semesters, Years
 from src.dates.conventions import DayCounter, Thirty360, Actual360, Actual365, BUSS252
 from src.dates.calendar import Calendar
 from src.dates.calendars.Brazil import Brazil
-from src.curves import curve
+from src.curves.curve import Curve
 
 class Product:
     def __init__(self):
@@ -13,16 +13,16 @@ class Product:
 
 
 class BondZeroCoupon(Product):
-    def __init__(self, nominal, startDate, matDate, base, curve_irr,
-                 curve_spread, calendar = Calendar()):
-        #if not isinstance(base, DayCounter):
-        #    raise ValueError("base must a DayCounter class")
+    def __init__(self, nominal, startDate, matDate, curve_irr,
+                 curve_spread, base=Actual365(), calendar = Calendar()):
+        if not isinstance(base, DayCounter):
+            raise ValueError("base must a DayCounter class")
         if not isinstance(calendar, Calendar):
             raise ValueError("calendar must be a calendar class")
         if not isinstance(startDate, Date) or not isinstance(matDate, Date):
             raise ValueError("startDate and matDate must be Date classes")
-        # if not isinstance(curve_irr, curve) and not isinstance(curve_spread, curve):
-        #    raise ValueError("curve_irr and curve_spread must be Date")
+        if not isinstance(curve_irr, Curve) or not isinstance(curve_spread, Curve):
+            raise ValueError("curve_irr and curve_spread must be Curve classes")
         self.nominal = nominal
         self.startDate = startDate
         self.matDate = matDate
@@ -31,18 +31,21 @@ class BondZeroCoupon(Product):
         self.curve_spread = curve_spread
         self.calendar = calendar
 
-    def NPV(self, val_date):
-        irr = self.curve_irr.discount(val_date, self.mat_date, self.base)
+    def discount(self, val_date):                   ### ¿¿¿DONDE ESTA VALDATE???? ### No se necesita
+        irr    = self.curve_irr.rate(self.matDate)
+        spread = self.curve_spread.rate(self.matDate)
+        return irr + spread
 
-        return self.nominal * irr
+    def NPV(self, val_date):
+        return self.nominal / (( 1 + self.discount(val_date)) ** self.base.yearFraction(val_date, self.matDate ))
 
 
 class Bond(BondZeroCoupon):
-    def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
-                 c_frequency, calendar = Calendar()):
-        super().__init__(nominal, startDate, matDate, base,
-                         curve_irr, curve_spread, calendar)
-        self.coupon       = coupon,
+    def __init__(self, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
+                 c_frequency, base = Actual365(), calendar = Calendar()):
+        super().__init__(nominal, startDate, matDate, curve_irr,
+                         curve_spread, base=base, calendar=calendar)
+        self.coupon       = coupon
         self.c_frequency  = int(12 / c_frequency)
 
     def couponPayment(self, val_date):
@@ -67,29 +70,30 @@ class Bond(BondZeroCoupon):
         return days
 
     def NPV(self, val_date):
-        amor   = super().NPV()                              # NPV del principal
-        pagos  = self.couponDates(val_date)                 # Array de fechas de cupones
+        dates = self.couponPayment(val_date)
+        irr = self.curve_irr.rate(dates)
+        spread = self.curve_spread.rate(dates)
+        l = len(irr)
+        r = [0] * l
+        value = 0
 
-        irr    = self.curve_irr.rate(pagos)                 # Risk free a cada fecha
-        spread = self.curve_spread.rate(pagos)              # Spread a cada fecha
+        for i in range(0, l):
+            r[i] = irr[i] + spread[i]
 
-        disc   = irr + spread                               # Array de tasa de descuento
+        for i in range(0, l):
+            value += self.coupon / ((1 + r[i]) ** self.base.yearFraction(val_date, dates[i], self.calendar))
 
-        disc_f  = 1 / (( 1 + disc) ** self.base.yearFraction(val_date, pagos, self.calendar ))    # Array factor de descuento
-        disc_f * self.coupon
+        value += self.nominal / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
 
-        sum(disc_f) * self.coupon
-
-        valor   = amor + disc_f
-        return valor
+        return value
 
 
 class BondZeroCouponInf(BondZeroCoupon):
-    def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
-                 c_frequency, day, IPCA, IPCA_p, calendar = Brazil()):
-        super().__init__(nominal, startDate, matDate, base,
+    def __init__(self, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
+                 c_frequency, day, IPCA, IPCA_p, base=BUSS252(), calendar = Brazil()):
+        super().__init__(nominal, startDate, matDate,
                          coupon, c_frequency, curve_irr,
-                         curve_spread, calendar = calendar)
+                         curve_spread, base=base, calendar=calendar)
         self.day    = day
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
@@ -99,11 +103,11 @@ class BondZeroCouponInf(BondZeroCoupon):
 
 
 class BondInf(Bond):
-    def __init__(self, nominal, startDate, matDate, base, curve_irr, curve_spread, coupon,
-                 c_frequency, day, IPCA, IPCA_p, calendar = Brazil()):
-        super().__init__(nominal, startDate, matDate, base,
+    def __init__(self, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
+                 c_frequency, day, IPCA, IPCA_p, base=BUSS252(), calendar=Brazil()):
+        super().__init__(nominal, startDate, matDate,
                          curve_irr, curve_spread, coupon,
-                         c_frequency, calendar = calendar)
+                         c_frequency, base=base, calendar=calendar)
         self.day    = day
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
@@ -159,30 +163,42 @@ class Portfolio:
 
 if __name__ == "__main__":
 
-    val_date = Date(29,12, 2015)
+    valDate = Date(29,12, 2015)
     carter = Portfolio()
 
-    b1 = Bond(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2020),
-              base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
-              coupon=0.0178246127679505, c_frequency=1)
+    days = [valDate + Days(180), valDate + Days(360), valDate + Days(720), valDate + Days(1080),
+            valDate + Days(1800), valDate + Days(2520), valDate + Days(3600)]
+
+    rates = [-0.00326, -0.00382, -0.00172, -0.00035,
+              0.00401, 0.01029, 0.01908]
+
+    PT_BOND = Curve("PT_BOND", days, rates)
+
+    bc = BondZeroCoupon(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2020),
+                        curve_irr=PT_BOND, base=Actual365(), curve_spread=PT_BOND)
+
+    b1 = Bond(nominal=1, startDate=Date( 3, 4, 2015), matDate=Date(30, 7, 2020),
+              curve_irr=PT_BOND, curve_spread=PT_BOND, coupon=0.0178246127679505,
+              c_frequency=1, base=Actual365())
 
     carter.append(b1)
 
-    b2 = Bond(nominal = 2, startDate = Date(16,10, 2105), matDate = Date(31,10, 2044),
-              base="ACT/ACT", curve_irr="ES_BOND", curve_spread="iBoxx",
+    b2 = Bond(nominal=2, startDate=Date(16,10, 2105), matDate=Date(31,10, 2044),
+              base=Actual365(), curve_irr=PT_BOND, curve_spread=PT_BOND,
               coupon=0.0223354303582122, c_frequency=12)
 
     carter.append(b2)
 
-    b3 = BondInf(nominal = 1000, startDate = Date(15, 5, 2005), matDate = Date(15, 5, 2015),
-                 base="BUSS/252", curve_irr="BR_BOND", curve_spread="iBoxx", coupon=0,
+    b3 = BondInf(nominal=1000, startDate=Date(15, 5, 2005), matDate=Date(15, 5, 2015),
+                 base=BUSS252(), curve_irr=PT_BOND, curve_spread=PT_BOND, coupon=0,
                  c_frequency=1, day=15, IPCA=1.532670225, IPCA_p=1)
 
     carter.append(b3)
 
     carter.append(Cash(3))
 
-    # print(carter.NPV(Date(29,12, 2012)))
+    print(bc.NPV(valDate))
+    print(b1.NPV(valDate))
 
-    c = b1.couponPayment(val_date)
+    c = b1.couponPayment(valDate)
     for i in c: print(i)

@@ -202,6 +202,9 @@ class Date:
         wday = self.serialNumber % 7
         return wday if wday != 0 else 7
 
+    def __len__(self):
+        return 1
+
     def __eq__(self, other):
         if isinstance(other, Date):
             return self.serialNumber == other.serialNumber

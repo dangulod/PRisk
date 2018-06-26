@@ -30,6 +30,19 @@ def splines(x, y, new_days):
 
 
 def linear(x, y, x0):
+
+    if ( len(x0) == 1 ):
+        return linearInterpol(x, y, x0)
+
+    vector = [0] * len(x0)
+
+    for i in range(0, len(x0)):
+        vector[i] = linearInterpol(x, y, x0[i])
+
+    return vector
+
+
+def linearInterpol(x, y, x0):
     pos = which(x, x0)
 
     if ( pos == 0 ): return x[0]
@@ -40,7 +53,7 @@ def linear(x, y, x0):
     x2 = x[pos]
 
     m = (y1 - y2) / (x1 - x2)
-    y0 = (x - x2) * m + y2
+    y0 = (x0 - x2) * m + y2
     return y0
 
 
@@ -55,16 +68,9 @@ class Curve:
         self.interpolator = interpolator
 
     def rate(self, Date):
-        pos = which(self.days, Date)
-        if (pos == 0): return self.rates[0]
-
         return self.interpolator(self.days,
                                  self.rates,
                                  Date)
-
-    def discount(self, t):
-        d = t / 365
-        return 1 / (self.compounding(self.rate(t), 1) ** d)
 
 if __name__ == "__main__":
 
@@ -74,9 +80,9 @@ if __name__ == "__main__":
     days = [valDate + Days(180), valDate + Days(360), valDate + Days(720), valDate + Days(1080),
             valDate + Days(1800), valDate + Days(2520), valDate + Days(3600)]
 
-    rates = np.array([-0.00326, -0.00382, -0.00172, -0.00035,
-                      0.00401, 0.01029, 0.01908])
+    rates = [-0.00326, -0.00382, -0.00172, -0.00035,
+              0.00401, 0.01029, 0.01908]
 
     PT_BOND = Curve("PT_BOND", days, rates)
 
-    print(PT_BOND.rate(Date(31, 1, 2019)))
+    print(PT_BOND.rate([Date(31, 1, 2019), Date(31, 1, 2020)]))

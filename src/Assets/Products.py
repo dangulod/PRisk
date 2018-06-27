@@ -100,18 +100,26 @@ class NTN_B_P(BondZeroCoupon):
         self.IPCA_p = IPCA_p
 
     def NPV(self, val_date):
-        return self.nominal
+
+        irr    = self.curve_irr.rate(self.matDate)
+        spread = self.curve_spread.rate(self.matDate)
+
+        r = irr + spread
+
+        value = 1 / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
+
+        return self.VNA(val_date) * value
 
 
-class NTN_B(Bond):
-    def __init__(self, nominal, startDate, matDate, curve_irr, coupon,
-                 frequency, day, IPCA, IPCA_p, curve_spread=NullCurve(), base=BUSS252(), calendar=Brazil()):
+class IndexedNominalBond(Bond):
+    def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, index,
+                 index_p, day=15, curve_spread=NullCurve(), base=BUSS252(), calendar=Calendar()):
         super().__init__(nominal, startDate, matDate,
                          curve_irr, curve_spread, coupon,
                          frequency, base=base, calendar=calendar)
-        self.day    = day
-        self.IPCA   = IPCA
-        self.IPCA_p = IPCA_p
+        self.day     = day
+        self.index   = index
+        self.index_p = index_p
 
     def couponDays(self, val_date):
         dates = [val_date] + self.couponPayment(val_date)
@@ -130,7 +138,7 @@ class NTN_B(Bond):
         pd = nd - Months(1)
         x  = ( val_date - pd ) / ( nd - pd )
 
-        return self.nominal * self.IPCA *( 1 + self.IPCA_p ) ** x
+        return self.nominal * self.index *( 1 + self.index_p ) ** x
 
     def NPV(self, val_date):
         dates = self.couponPayment(val_date)
@@ -154,6 +162,19 @@ class NTN_B(Bond):
         value += 1 / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
 
         return self.VNA(val_date) * value
+
+
+class NTN_B(IndexedNominalBond):
+    def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, IPCA,
+                 IPCA_p, day=15, curve_spread=NullCurve(), base=BUSS252(), calendar=Brazil()):
+        super().__init__(nominal, startDate, matDate, curve_irr, coupon, frequency, index=IPCA,
+                         index_p=IPCA_p, day=day, curve_spread=curve_spread, base=base, calendar=calendar)
+
+    def VNA(self, val_date: Date):
+        return super().VNA(val_date)
+
+    def NPV(self, val_date):
+        return super().NPV(val_date)
 
 class Equity(Product):
     def __init__(self, nominal, factor):
@@ -223,7 +244,7 @@ if __name__ == "__main__":
               frequency=1, base=Actual365())
 
     b3 = NTN_B(nominal=1000, startDate=Date(15, 5, 2005), matDate=Date(15, 5, 2017),
-               base=BUSS252(), curve_irr=IRR(0.0532), curve_spread=NullCurve(), coupon=0.06,
+               base=BUSS252(), curve_irr=IRR(0.0532), coupon=0.06,
                frequency=2, day=15, IPCA=2.097583332, IPCA_p=0.0053)
 
     print(bc.NPV(valDate))

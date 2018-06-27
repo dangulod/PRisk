@@ -103,5 +103,3 @@ if __name__ == "__main__":
 
     print(PT_BOND.rate([Date(31, 1, 2019), Date(31, 1, 2020)]))
 
-    x = NullCurve()
-    print(x.rate(Date(1, 1, 2010)))

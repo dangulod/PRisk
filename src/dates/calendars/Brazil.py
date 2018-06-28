@@ -163,8 +163,8 @@ class Brazil(Calendar):
 if __name__ == "__main__":
     gen = Calendar()
     cal = Brazil()
-    print( cal.businessDaysBetween(Date(20, 6, 2018), Date( 27, 6, 2019)))
-    print( cal.businessDaysBetween2(Date(20, 6, 2018), Date( 27, 6, 2019)))
+    print( cal.businessDaysBetween(Date(1, 1, 2018), Date( 1, 1, 2020)))
+    print( cal.businessDaysBetween2(Date(1, 1, 2018), Date( 1, 1, 2020)))
     print(Date( 27, 6, 2013).weekday())
     '''
     Date(1, 1, 2018), Date(12, 2, 2018), Date(13, 2, 2018), Date(30, 3, 2018), Date(21, 4, 2018), 5 255
@@ -183,3 +183,9 @@ if __name__ == "__main__":
     print(Date(21, 4, 2019).weekday()) #
     print(Date(1, 5, 2019).weekday())
     print(Date(20, 6, 2019).weekday())
+    print(Date(7, 9, 2019).weekday())   #
+    print(Date(12, 10, 2019).weekday()) #
+    print(Date(2, 11, 2019).weekday())  #
+    print(Date(15, 11, 2019).weekday())
+    print(Date(25, 12, 2019).weekday())
+    print(Date(1, 1, 2020).weekday())

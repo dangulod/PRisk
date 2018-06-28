@@ -1,5 +1,5 @@
 from math import exp
-import numpy as np
+from src.utils import which
 
 
 def simple(r, t):
@@ -12,12 +12,6 @@ def compounded(r, t):
 
 def continuous(r, t):
     return exp(r * t)
-
-
-def which(x, a):  # assert 'x' np.array & 'a' int
-    for i in range(0, len(x)):
-        if (x[i] > a): return i
-
 
 # Interpolator
 

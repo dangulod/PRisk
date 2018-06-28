@@ -79,12 +79,12 @@ def isleap(y):
     return leap[ y - 1900 ]
 
 
-mn = (  0,  31,  59,  90, 120, 151,             # Jan - Jun
+mn = (  0,  31,  59,  90, 120, 151,               # Jan - Jun
       181, 212, 243, 273, 304, 334,             # Jun - Dec
       365 )
 
 
-ml = (  0,  31,  60,  91, 121, 152,             # Jan - Jun
+ml = (  0,  31,  60,  91, 121, 152,               # Jan - Jun
       182, 213, 244, 274, 305, 335,             # Jun - Dec
       366 )
 
@@ -144,37 +144,40 @@ def yearOffset(year):
 
 def monthLength(month, leap):
     if leap:
-        l = ( 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 )
+        l =  ( 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 )
     else:
-        l = ( 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 )
+        l =  ( 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 )
     return l[ month - 1 ]
 
 
 class Date:
-    def __init__(self,  day,  month,  year):
-        if ( (not isinstance(day,  int)) | (not isinstance(month,  int)) | (not isinstance(year,  int)) ):
-            raise  ValueError( "Year,  month & day must be integers" )
-        if ( month < 1 or month > 12 ):
-            raise ValueError( "Month out of bound. It must be in [1-12]" )
-        if ( year < 1900 or year > 2200 ):
-            raise ValueError( "Year out of bound. It must be in [1900-2200]" )
+    def __init__(self,  day=None,  month=None, year=None, serial=None):
+        if (isinstance(serial , int) and day == None and month == None and year==None):
+            self.serialNumber = serial
+        else:
+            if ( (not isinstance(day,  int)) | (not isinstance(month,  int)) | (not isinstance(year,  int)) ):
+                raise  ValueError( "Year,  month & day must be integers" )
+            if ( month < 1 or month > 12 ):
+                raise ValueError( "Month out of bound. It must be in [1-12]" )
+            if ( year < 1900 or year > 2200 ):
+                raise ValueError( "Year out of bound. It must be in [1900-2200]" )
 
-        leap = isleap(year)
-        leng = monthLength(month, leap)
+            leap = isleap(year)
+            leng = monthLength(month, leap)
 
-        if ( day < 1 or day > leng ):
-            raise  ValueError( "Day out of bound" )
+            if ( day < 1 or day > leng ):
+                raise  ValueError( "Day out of bound" )
 
-        offset = monthOffset(month, leap)
-        s = day + offset + yearOffset(year)
-        checkSerialNumber(s)
-        self.serialNumber = s
+            offset = monthOffset(month, leap)
+            s = day + offset + yearOffset(year)
+            checkSerialNumber(s)
+            self.serialNumber = s
 
     def year(self):
-        i = 0
-        while (self.serialNumber > serial[i]):
-            i += 1
-        return 1899 + i
+        y = int(self.serialNumber / 365) + 1900
+        if (self.serialNumber <= yearOffset(y)):
+            y = y - 1
+        return int(y)
 
     def month(self):
         i    = 0
@@ -228,9 +231,9 @@ class Date:
 
     def __add__(self, other):
         if isinstance(other, Days):
-            return serialToDate( self.serialNumber + other.d )
+            return Date( serial=self.serialNumber + other.d )
         if isinstance(other, Weeks):
-            return serialToDate( self.serialNumber + other.w * 7 )
+            return Date( serial=self.serialNumber + other.w * 7 )
         if isinstance(other, Months):
             y = self.year()
             m = self.month()
@@ -252,9 +255,9 @@ class Date:
         if isinstance(other, Date):
             return self.serialNumber - other.serialNumber
         if isinstance(other, Days):
-            return serialToDate( self.serialNumber - other.d )
+            return Date( serial=self.serialNumber - other.d )
         if isinstance(other, Weeks):
-            return serialToDate(self.serialNumber - other.w * 7)
+            return Date( serial=self.serialNumber - other.w * 7 )
         if isinstance(other, Months):
             y = self.year()
             m = self.month()
@@ -276,29 +279,9 @@ class Date:
         return str(self.day()) + "-" + str(self.month()) + "-" + str(self.year())
 
 
-def serialToDate(serialNumber):
-    # Year
-    i = 0
-    while (serialNumber > serial[i]):
-        i += 1
-    year = 1899 + i
-    # Month
-    i = 0
-    leap = isleap(year)
-    doy = serialNumber - yearOffset(year)
-    if leap:
-        while (doy > ml[i]): i += 1
-    else:
-        while (doy > mn[i]): i += 1
-    month = i
-    # Day
-    day = doy - monthOffset(month, leap)
-    return Date(day, month, year)
-
-
 class Days:
     def __init__(self, d):
-        if (( not isinstance(d, int) or not d > 0 )):
+        if (( not isinstance(d, int) or not d >= 0 )):
             raise ValueError("d must be a positive integer")
         self.d = d
 

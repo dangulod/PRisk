@@ -1,7 +1,8 @@
 from src.dates.calendar import Calendar
 from src.dates.date import Date
+import numpy as np
 
-ANBIMA = (
+ANBIMA = np.array([
     Date( 1, 1, 2001), Date(26, 2, 2001), Date(27, 2, 2001), Date(13, 4, 2001), Date(21, 4, 2001), Date( 1, 5, 2001),
     Date(14, 6, 2001), Date( 7, 9, 2001), Date(12,10, 2001), Date( 2,11, 2001), Date(15,11, 2001), Date(25,12, 2001), Date( 1, 1, 2002),
     Date(11, 2, 2002), Date(12, 2, 2002), Date(29, 3, 2002), Date(21, 4, 2002), Date( 1, 5, 2002), Date(30, 5, 2002), Date( 7, 9, 2002),
@@ -136,7 +137,7 @@ ANBIMA = (
     Date(21, 4, 2077), Date( 1, 5, 2077), Date(10, 6, 2077), Date( 7, 9, 2077), Date(12,10, 2077), Date( 2,11, 2077), Date(15,11, 2077),
     Date(25,12, 2077), Date( 1, 1, 2078), Date(14, 2, 2078), Date(15, 2, 2078), Date( 1, 4, 2078), Date(21, 4, 2078), Date( 1, 5, 2078),
     Date( 2, 6, 2078), Date( 7, 9, 2078), Date(12,10, 2078), Date( 2,11, 2078), Date(15,11, 2078), Date(25,12, 2078), Date( 1, 1, 2079)
-)
+])
 
 class Brazil(Calendar):
     def __init__(self):
@@ -148,6 +149,11 @@ class Brazil(Calendar):
             if (date == i): return True
         return False
 
+    def businessDaysBetween(self, date_from: Date, date_to: Date):
+        d = super().businessDaysBetween(date_from, date_to)
+
+        return d
+
 
 if __name__ == "__main__":
     cal = Brazil()
@@ -155,3 +161,4 @@ if __name__ == "__main__":
     print( Date(1, 1, 2019) - Date(1, 1, 2018) )
     print( gen.businessDaysBetween(Date( 1, 1, 2018), Date( 1, 1, 2019)) )
     print( cal.businessDaysBetween(Date(1, 1, 2018), Date(1, 1, 2019)) )
+    print(np.where(Date(1, 1, 2018) < ANBIMA and Date(1, 1, 2019) > ANBIMA))

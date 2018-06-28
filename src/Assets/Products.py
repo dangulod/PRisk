@@ -12,6 +12,8 @@ class Product:
     def NPV(self, val_date):
         pass
 
+    def val(self, val_date):
+        return val_date > self.matDate
 
 class BondZeroCoupon(Product):
     def __init__(self, nominal, startDate, matDate, curve_irr,
@@ -38,6 +40,7 @@ class BondZeroCoupon(Product):
         return irr + spread
 
     def NPV(self, val_date):
+        if (self.val(val_date)): return 0
         return self.nominal / (( 1 + self.discount(val_date)) ** self.base.yearFraction(val_date,
                                                                                         self.matDate,
                                                                                         self.calendar ))
@@ -73,6 +76,8 @@ class Bond(BondZeroCoupon):
         return days
 
     def NPV(self, val_date):
+        if (self.val(val_date)): return 0
+
         dates = self.couponPayment(val_date)
         irr = self.curve_irr.rate(dates)
         spread = self.curve_spread.rate(dates)
@@ -91,7 +96,7 @@ class Bond(BondZeroCoupon):
 
 
 class NTN_B_P(BondZeroCoupon):
-    def __init__(self, nominal, startDate, matDate, curve_irr,day, IPCA, IPCA_p,
+    def __init__(self, nominal, startDate, matDate, curve_irr, IPCA, IPCA_p, day=15,
                  curve_spread=NullCurve(), base=BUSS252(), calendar = Brazil()):
         super().__init__(nominal, startDate, matDate, curve_irr,
                          curve_spread=curve_spread, base=base, calendar=calendar)
@@ -99,14 +104,24 @@ class NTN_B_P(BondZeroCoupon):
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
 
+    def VNA(self, val_date: Date):
+        m  = val_date.month()
+        y  = val_date.year()
+        nd = Date(self.day, m, y)
+        pd = nd - Months(1)
+        x  = ( val_date - pd ) / ( nd - pd )
+
+        return self.nominal * self.IPCA *( 1 + self.IPCA_p ) ** x
+
     def NPV(self, val_date):
+        if (self.val(val_date)): return 0
 
         irr    = self.curve_irr.rate(self.matDate)
         spread = self.curve_spread.rate(self.matDate)
 
-        r = irr + spread
+        r = irr[0] + spread[0]
 
-        value = 1 / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
+        value = 1 / ((1 + r) ** ( self.base.yearFraction(val_date, self.matDate, self.calendar)  ))
 
         return self.VNA(val_date) * value
 
@@ -127,7 +142,7 @@ class IndexedNominalBond(Bond):
         days  = [0] * l
         n     = 0
         for i in range(0, l):
-            n      += self.calendar.businessDaysBetween(dates[i], dates[i + 1]) + 1
+            n      += self.calendar.businessDaysBetween(dates[i], dates[i + 1])
             days[i] = n
         return days
 
@@ -141,9 +156,8 @@ class IndexedNominalBond(Bond):
         return self.nominal * self.index *( 1 + self.index_p ) ** x
 
     def NPV(self, val_date):
+        if (self.val(val_date)): return 0
         dates = self.couponPayment(val_date)
-
-        if dates == 0: return 0
 
         f = self.frequency / 12
 
@@ -174,6 +188,7 @@ class NTN_B(IndexedNominalBond):
         return super().VNA(val_date)
 
     def NPV(self, val_date):
+        if (self.val(val_date)): return 0
         return super().NPV(val_date)
 
 class Equity(Product):
@@ -247,9 +262,13 @@ if __name__ == "__main__":
                base=BUSS252(), curve_irr=IRR(0.0532), coupon=0.06,
                frequency=2, day=15, IPCA=2.097583332, IPCA_p=0.0053)
 
-    print(bc.NPV(valDate))
+    b4 = NTN_B_P(nominal=1000, startDate=Date(15, 7, 2000), matDate=Date(15, 5, 2015), curve_irr=IRR(0.0874),
+                 IPCA=1.532670225, IPCA_p=0)
+
+    # print(bc.NPV(valDate))
     print(b1.NPV(valDate))
     print(b3.NPV(Date( 3, 1, 2012)))
+    # print(b4.NPV(Date(15, 7, 2005)))
 
-    c = b3.couponPayment(Date( 3, 1, 2012))
+    c = b1.couponPayment(Date(31, 12, 2017))
     for i in c: print(i)

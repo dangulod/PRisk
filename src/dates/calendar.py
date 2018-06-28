@@ -51,3 +51,5 @@ class Calendar:
 if __name__ == "__main__":
     x = Calendar()
     print(x.businessDaysBetween(Date( 23, 6, 2018), Date( 5, 7, 2018)))
+    print(x.businessDaysBetween(Date( 1, 1, 2018), Date(1, 1, 2019)))
+    print(x.businessDaysBetween2(Date(1, 1, 2018), Date(1, 1, 2019)))

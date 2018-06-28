@@ -265,10 +265,10 @@ if __name__ == "__main__":
     b4 = NTN_B_P(nominal=1000, startDate=Date(15, 7, 2000), matDate=Date(15, 5, 2015), curve_irr=IRR(0.0874),
                  IPCA=1.532670225, IPCA_p=0)
 
-    # print(bc.NPV(valDate))
+    print(bc.NPV(valDate))
     print(b1.NPV(valDate))
     print(b3.NPV(Date( 3, 1, 2012)))
-    # print(b4.NPV(Date(15, 7, 2005)))
+    print(b4.NPV(Date(15, 7, 2005)))
 
     c = b1.couponPayment(Date(31, 12, 2017))
     for i in c: print(i)

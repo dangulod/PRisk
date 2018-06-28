@@ -152,13 +152,34 @@ class Brazil(Calendar):
     def businessDaysBetween(self, date_from: Date, date_to: Date):
         d = super().businessDaysBetween(date_from, date_to)
 
-        return d
+        i = 0
+        while ANBIMA[i] < date_from: i += 1
+        j = i
+        while ANBIMA[j] < date_to: j +=1
+
+        return d - (j - i ) + self.isWeekend(date_from) + ((ANBIMA[j] == date_to) or self.isWeekend(date_to))
 
 
 if __name__ == "__main__":
-    cal = Brazil()
     gen = Calendar()
-    print( Date(1, 1, 2019) - Date(1, 1, 2018) )
-    print( gen.businessDaysBetween(Date( 1, 1, 2018), Date( 1, 1, 2019)) )
-    print( cal.businessDaysBetween(Date(1, 1, 2018), Date(1, 1, 2019)) )
-    print(np.where(Date(1, 1, 2018) < ANBIMA and Date(1, 1, 2019) > ANBIMA))
+    cal = Brazil()
+    print( cal.businessDaysBetween(Date(20, 6, 2018), Date( 27, 6, 2019)))
+    print( cal.businessDaysBetween2(Date(20, 6, 2018), Date( 27, 6, 2019)))
+    print(Date( 27, 6, 2013).weekday())
+    '''
+    Date(1, 1, 2018), Date(12, 2, 2018), Date(13, 2, 2018), Date(30, 3, 2018), Date(21, 4, 2018), 5 255
+    Date(1, 5, 2018), Date(31, 5, 2018), Date(7, 9, 2018), Date(12, 10, 2018), Date(2, 11, 2018), 5
+    Date(15, 11,2018), Date(25,12,2018), Date(1, 1, 2019)                                         3
+    '''
+    print(Date(7, 9, 2018).weekday())
+    print(Date(12, 10, 2018).weekday())
+    print(Date(2, 11, 2018).weekday())
+    print(Date(15, 11, 2018).weekday())
+    print(Date(25, 12, 2018).weekday())
+    print(Date(1, 1, 2019).weekday())
+    print(Date(4, 3, 2019).weekday())
+    print(Date(5, 3, 2019).weekday())
+    print(Date(19, 4, 2019).weekday())
+    print(Date(21, 4, 2019).weekday()) #
+    print(Date(1, 5, 2019).weekday())
+    print(Date(20, 6, 2019).weekday())

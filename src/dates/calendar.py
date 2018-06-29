@@ -32,7 +32,7 @@ class Calendar:
 
         nw = (((date_to - Days(ed - 1)) - (date_from - Days(sd - 1))) / 7) - 1
 
-        return int(nd - nw * 2 - min(8 - sd, 2) + max(ed - 6, 0))
+        return int(nd - nw * 2 - min(8 - sd, 2) - max(ed - 6, 0))
 
     def businessDaysBetween2(self, date_from, date_to):
         if (not isinstance(date_from, Date) or not isinstance(date_to, Date)):

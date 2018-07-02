@@ -285,6 +285,9 @@ class Days:
             raise ValueError("d must be a positive integer")
         self.d = d
 
+    def __str__(self):
+        return str(self.d) + " Days"
+
 
 class Weeks:
     def __init__(self, w):
@@ -292,6 +295,8 @@ class Weeks:
             raise ValueError("w must be a positive integer")
         self.w = w
 
+    def __str__(self):
+        return str(self.w) + " Weeks"
 
 class Months:
     def __init__(self, m):
@@ -299,6 +304,8 @@ class Months:
             raise ValueError("m must be a positive integer")
         self.m = m
 
+    def __str__(self):
+        return str(self.m) + " Months"
 
 class Quarters:
     def __init__(self, q):
@@ -306,6 +313,8 @@ class Quarters:
             raise ValueError("q must be a positive integer")
         self.q = q
 
+    def __str__(self):
+        return str(self.q) + " Quarters"
 
 class Semesters:
     def __init__(self, s):
@@ -313,12 +322,18 @@ class Semesters:
             raise ValueError("s must be a positive integer")
         self.s = s
 
+    def __str__(self):
+        return str(self.s) + " Semesters"
+
 
 class Years:
     def __init__(self, y):
         if (( not isinstance(y, int) or not y > 0 )):
             raise ValueError("y must be a positive integer")
         self.y = y
+
+    def __str__(self):
+        return str(self.y) + " Years"
 
 
 if __name__ == "__main__":

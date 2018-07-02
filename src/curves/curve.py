@@ -1,6 +1,8 @@
 from math import exp
 from src.utils import which
 
+from src.utils import get_base
+from src.dates.calendar import Calendar
 
 def simple(r, t):
     return (1 + r * t)
@@ -19,7 +21,7 @@ def splines(x, y, x0):
 
     from scipy.interpolate import CubicSpline
 
-    return CubicSpline(x, y)
+    return CubicSpline(x, y, x0) # Revisar si esta bien
 
 
 def linear(x, y, x0):
@@ -52,18 +54,29 @@ def linearInterpol(x, y, x0):
 
 
 class Curve:
-    def __init__(self, name, dates, rates, interpolator=linear):
+    def __init__(self, name, dates, rates, compounding=compounded, base="ACT/365",
+                 interpolator=linear, calendar=Calendar()):
         if len(dates) != len(rates):
             raise ValueError("Dates and Rates must have the same length")
-        self.name = name
+        self.name  = name
         self.dates = dates
         self.rates = rates
+        self.base  = get_base(base)
+        self.compounding  = compounding
         self.interpolator = interpolator
+        self.calendar = calendar
+
+    def __str__(self):
+        return str(self.name) + " " + str(len(self.dates)) + " tenors"
 
     def rate(self, Date):
         return self.interpolator(self.dates,
                                  self.rates,
                                  Date)
+
+    def discount(self, val_date, date):
+        rates = self.rate(date)
+        return 1 / (self.compounding(rates, 1) ** self.base.yearFraction(val_date, date, self.calendar))
 
 
 class NullCurve(Curve):
@@ -93,7 +106,8 @@ if __name__ == "__main__":
     rates = [-0.00326, -0.00382, -0.00172, -0.00035,
               0.00401, 0.01029, 0.01908]
 
-    PT_BOND = Curve("PT_BOND", days, rates)
+    PT_BOND = Curve("PT_BOND", days, rates, base="BUSS/252")
 
     print(PT_BOND.rate([Date(31, 1, 2019), Date(31, 1, 2020)]))
+    print(PT_BOND.discount(valDate, Date(31, 1, 2020)))
 

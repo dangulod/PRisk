@@ -32,20 +32,28 @@ def get_curve(name, array):
     return array[where(array.map(lambda x: x.name), name)]
 
 
-def ClassFactory(name, argnames, BaseClass):
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            # here, the argnames variable is the one passed to the
-            # ClassFactory call
-            if key not in argnames:
-                raise TypeError("Argument %s not valid for %s"
-                    % (key, self.__class__.__name__))
-            setattr(self, key, value)
-        BaseClass.__init__(self, name[:-len("Class")])
-    newclass = type(name, (BaseClass,),{"__init__": __init__})
-    return newclass
-
 if __name__ == "__main__":
-    from src.Assets.Products import Bond
 
-    x = Bond()
+    import src.assets.products as pricers
+    from src.assets.products import Portfolio
+    from src.dates.date import Date, Days
+    from src.curves.curve import Curve, NullCurve
+
+    p = Portfolio()
+    valDate = Date(31, 12, 2017)
+
+    ES_BOND = Curve(name="ES_BOND",
+                    dates=[valDate + Days(360), valDate + Days(1080), valDate + Days(1440), valDate + Days(1800),
+                           valDate + Days(2520), valDate + Days(3240), valDate + Days(3600), valDate + Days(5400),
+                           valDate + Days(5580), valDate + Days(7200)],
+                    rates=[-0.00528, -0.00024, 0.0006, 0.0037, 0.00819,
+                           0.01322, 0.01558, 0.02225, 0.0223, 0.02361])
+
+    class_ = getattr(pricers, "Bond")
+
+    args = {'nominal': 4776736, 'startDate': Date(4, 3, 2015), 'matDate': Date(30, 7, 2030),
+            'curve_irr': ES_BOND, 'coupon': 0.0178246127679505, 'curve_spread': NullCurve(),
+            'frequency': 1, 'base':'ACT/365'}
+
+    x1 = getattr(pricers, "Bond")(**args)
+

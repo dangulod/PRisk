@@ -86,6 +86,8 @@ class NullCurve(Curve):
     def rate(self, Date):
         return [0] * len(Date)
 
+    def discount(self, val_date, date):
+        return 1
 
 class IRR(Curve):
     def __init__(self, irr):

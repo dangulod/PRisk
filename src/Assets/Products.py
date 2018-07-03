@@ -65,6 +65,9 @@ class Bond(BondZeroCoupon):
     def NPV(self, val_date):
         if (self.val(val_date)): return 0
 
+        f = self.frequency / 12
+        c = ((1 + self.coupon) ** (f) - 1)
+
         dates = self.couponPayment(val_date)
         irr = self.curve_irr.rate(dates)
         spread = self.curve_spread.rate(dates)
@@ -75,7 +78,7 @@ class Bond(BondZeroCoupon):
         for i in range(0, l): r[i] = irr[i] + spread[i]
 
         for i in range(0, l):
-            value += (self.coupon * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(val_date, dates[i], self.calendar))
+            value += (c * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(val_date, dates[i], self.calendar))
 
         value += self.nominal / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
 
@@ -178,6 +181,7 @@ class NTN_B(IndexedNominalBond):
         if (self.val(val_date)): return 0
         return super().NPV(val_date)
 
+
 class Equity(Product):
     def __init__(self, nominal, factor):
         self.nominal = nominal
@@ -260,4 +264,3 @@ if __name__ == "__main__":
     c = b1.couponPayment(Date(31, 12, 2017))
     for i in c: print(i)
 
-#    from src.Assets.Prodic

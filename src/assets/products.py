@@ -267,7 +267,5 @@ if __name__ == "__main__":
     print(b4.NPV(Date(15, 7, 2005)))
 
     c = b1.couponPayment(Date(31, 12, 2017))
-
-
     for i in c: print(i)
 

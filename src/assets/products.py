@@ -1,8 +1,9 @@
 from src.dates.date import Date, Days, Weeks, Months, Quarters, Semesters, Years
+from src.dates.conventions import DayCounter, Thirty360, Actual360, Actual365, BUSS252
 from src.dates.calendar import Calendar
 from src.dates.calendars.Brazil import Brazil
 from src.curves.curve import Curve, IRR, NullCurve
-from src.utils import get_base
+
 
 class Product:
     def __init__(self):
@@ -16,7 +17,9 @@ class Product:
 
 class BondZeroCoupon(Product):
     def __init__(self, nominal, startDate, matDate, curve_irr,
-                 curve_spread, base="ACT/365", calendar = Calendar()):
+                 curve_spread, base=Actual365(), calendar = Calendar()):
+        if not isinstance(base, DayCounter):
+            raise ValueError("base must a DayCounter class")
         if not isinstance(calendar, Calendar):
             raise ValueError("calendar must be a calendar class")
         if not isinstance(startDate, Date) or not isinstance(matDate, Date):
@@ -26,7 +29,7 @@ class BondZeroCoupon(Product):
         self.nominal = nominal
         self.startDate = startDate
         self.matDate = matDate
-        self.base = get_base(base)
+        self.base = base
         self.curve_irr = curve_irr
         self.curve_spread = curve_spread
         self.calendar = calendar
@@ -45,7 +48,7 @@ class BondZeroCoupon(Product):
 
 class Bond(BondZeroCoupon):
     def __init__(self, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
-                 frequency, base="ACT/365", calendar=Calendar()):
+                 frequency, base = Actual365(), calendar = Calendar()):
         super().__init__(nominal, startDate, matDate, curve_irr,
                          curve_spread, base=base, calendar=calendar)
         self.coupon       = coupon
@@ -62,11 +65,18 @@ class Bond(BondZeroCoupon):
             i += 1
         return coup
 
+    def couponDays(self, val_date):             # Borrar metodo por que no usa calendario y no se usa en NPV
+        dates = self.couponPayment(val_date)
+        l     = (len(dates) - 1)
+        days  = [0] * l
+        n = 0
+        for i in range(0, l):
+            n += dates[i + 1] - dates[i]
+            days[i] = n
+        return days
+
     def NPV(self, val_date):
         if (self.val(val_date)): return 0
-
-        f = self.frequency / 12
-        c = ((1 + self.coupon) ** (f) - 1)
 
         dates = self.couponPayment(val_date)
         irr = self.curve_irr.rate(dates)
@@ -78,7 +88,7 @@ class Bond(BondZeroCoupon):
         for i in range(0, l): r[i] = irr[i] + spread[i]
 
         for i in range(0, l):
-            value += (c * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(val_date, dates[i], self.calendar))
+            value += (self.coupon * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(val_date, dates[i], self.calendar))
 
         value += self.nominal / ((1 + r[i]) ** self.base.yearFraction(val_date, self.matDate, self.calendar))
 
@@ -87,7 +97,7 @@ class Bond(BondZeroCoupon):
 
 class NTN_B_P(BondZeroCoupon):
     def __init__(self, nominal, startDate, matDate, curve_irr, IPCA, IPCA_p, day=15,
-                 curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil()):
+                 curve_spread=NullCurve(), base=BUSS252(), calendar = Brazil()):
         super().__init__(nominal, startDate, matDate, curve_irr,
                          curve_spread=curve_spread, base=base, calendar=calendar)
         self.day    = day
@@ -118,7 +128,7 @@ class NTN_B_P(BondZeroCoupon):
 
 class IndexedNominalBond(Bond):
     def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, index,
-                 index_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar()):
+                 index_p, day=15, curve_spread=NullCurve(), base=BUSS252(), calendar=Calendar()):
         super().__init__(nominal, startDate, matDate,
                          curve_irr, curve_spread, coupon,
                          frequency, base=base, calendar=calendar)
@@ -170,7 +180,7 @@ class IndexedNominalBond(Bond):
 
 class NTN_B(IndexedNominalBond):
     def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, IPCA,
-                 IPCA_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil()):
+                 IPCA_p, day=15, curve_spread=NullCurve(), base=BUSS252(), calendar=Brazil()):
         super().__init__(nominal, startDate, matDate, curve_irr, coupon, frequency, index=IPCA,
                          index_p=IPCA_p, day=day, curve_spread=curve_spread, base=base, calendar=calendar)
 
@@ -180,7 +190,6 @@ class NTN_B(IndexedNominalBond):
     def NPV(self, val_date):
         if (self.val(val_date)): return 0
         return super().NPV(val_date)
-
 
 class Equity(Product):
     def __init__(self, nominal, factor):
@@ -243,14 +252,14 @@ if __name__ == "__main__":
                          0.013, 0.0153331790380074, 0.0174148226736888])
 
     bc = BondZeroCoupon(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2020),
-                        curve_irr=PT_BOND, curve_spread=PT_BOND, base="ACT/365")
+                        curve_irr=PT_BOND, curve_spread=PT_BOND, base=Actual365())
 
     b1 = Bond(nominal=4776736, startDate=Date( 4, 3, 2015), matDate=Date(30, 7, 2030),
               curve_irr=ES_BOND, coupon=0.0178246127679505, curve_spread=NullCurve(),
-              frequency=1, base="ACT/365")
+              frequency=1, base=Actual365())
 
     b3 = NTN_B(nominal=1000, startDate=Date(15, 5, 2005), matDate=Date(15, 5, 2017),
-               base="BUSS/252", curve_irr=IRR(0.0532), coupon=0.06,
+               base=BUSS252(), curve_irr=IRR(0.0532), coupon=0.06,
                frequency=2, day=15, IPCA=2.097583332, IPCA_p=0.0053)
 
     b4 = NTN_B_P(nominal=1000, startDate=Date(15, 7, 2000), matDate=Date(15, 5, 2015), curve_irr=IRR(0.0874),
@@ -263,4 +272,3 @@ if __name__ == "__main__":
 
     c = b1.couponPayment(Date(31, 12, 2017))
     for i in c: print(i)
-

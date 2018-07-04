@@ -276,7 +276,10 @@ class Date:
             return self - Months(other.y * 12)
 
     def __str__(self):
-        return str(self.day()) + "-" + str(self.month()) + "-" + str(self.year())
+        return "%d-%d-%d" % (self.day(), self.month(), self.year())
+
+    def __repr__(self):
+        return "Date(%d, %d, %d)" % (self.day(), self.month(), self.year())
 
 
 class Days:
@@ -374,3 +377,4 @@ if __name__ == "__main__":
     print( x < y )              # True
     print( x <= y )             # True
     print( x >= y )             # False
+

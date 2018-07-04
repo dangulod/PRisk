@@ -1,6 +1,6 @@
 from math import exp
 from src.utils.utils import which, where
-
+from src.dates.date import Date
 from src.utils.getters import get_base
 from src.dates.calendar import Calendar
 
@@ -25,7 +25,7 @@ def splines(x, y, x0):
 
 
 def linear(x, y, x0):
-    if ( len(x0) == 1 ):
+    if isinstance(x0, (float, Date)):
         return linearInterpol(x, y, x0)
 
     vector = [0] * len(x0)

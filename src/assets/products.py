@@ -11,8 +11,6 @@ class Product:
     def NPV(self, val_date):
         pass
 
-    def val(self, val_date):
-        return val_date > self.matDate
 
 class BondZeroCoupon(Product):
     def __init__(self, nominal, startDate, matDate, curve_irr,
@@ -30,6 +28,9 @@ class BondZeroCoupon(Product):
         self.curve_irr = curve_irr
         self.curve_spread = curve_spread
         self.calendar = calendar
+
+    def val(self, val_date):
+        return val_date > self.matDate
 
     def discount(self, val_date):
         irr    = self.curve_irr.rate(self.matDate)

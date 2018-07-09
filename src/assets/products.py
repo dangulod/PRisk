@@ -217,6 +217,9 @@ class Portfolio:
     def __add__(self, other):
         self.append(other)
 
+    def __getitem__(self, item):
+        return self.products[item]
+
     def NPV(self, val_date):
         value = 0
         for i in self.products:
@@ -248,12 +251,21 @@ if __name__ == "__main__":
                   rates=[-0.04, 0.002, 0.0051, 0.0088, 0.00932552530590786,
                          0.013, 0.0153331790380074, 0.0174148226736888])
 
+    IR_iBoxx = Curve(name="IR_iBoxx",
+                     dates=[valDate + Days(659), valDate + Days(1429), valDate + Days(1850), valDate + Days(2801),
+                            valDate + Days(4399), valDate + Days(7210), valDate + Days(8406)],
+                     rates=[0.0098, 0.0126, 0.0146, 0.0176, 0.021600, 0.023564, 0.0244])
+
     bc = BondZeroCoupon(nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2020),
                         curve_irr=PT_BOND, curve_spread=PT_BOND, base="ACT/365")
 
     b1 = Bond(nominal=4776736, startDate=Date( 4, 3, 2015), matDate=Date(30, 7, 2030),
               curve_irr=ES_BOND, coupon=0.0178246127679505, curve_spread=NullCurve(),
               frequency=1, base="ACT/365")
+
+    bu = Bond(nominal=1952048, startDate=Date(15, 1, 2014), matDate=Date(15, 9, 2076),
+              curve_irr=IR_iBoxx, coupon=0.0206653578940817, curve_spread=NullCurve(),
+              frequency=3, base="ACT/365")
 
     b3 = NTN_B(nominal=1000, startDate=Date(15, 5, 2005), matDate=Date(15, 5, 2017),
                base="BUSS/252", curve_irr=IRR(0.0532), coupon=0.06,
@@ -262,11 +274,15 @@ if __name__ == "__main__":
     b4 = NTN_B_P(nominal=1000, startDate=Date(15, 7, 2000), matDate=Date(15, 5, 2015), curve_irr=IRR(0.0874),
                  IPCA=1.532670225, IPCA_p=0)
 
+    '''
     print(bc.NPV(valDate))
     print(b1.NPV(valDate))
     print(b3.NPV(Date( 3, 1, 2012)))
     print(b4.NPV(Date(15, 7, 2005)))
+    '''
+    print(b1.NPV(valDate))
 
+    '''
     c = b1.couponPayment(Date(31, 12, 2017))
     for i in c: print(i)
-
+    '''

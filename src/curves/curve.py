@@ -58,6 +58,10 @@ class Curve:
                  interpolator=linear, calendar=Calendar()):
         if len(dates) != len(rates):
             raise ValueError("Dates and Rates must have the same length")
+        if not isinstance(dates, list):
+            raise ValueError("Dates must be a list")
+        if not isinstance(rates, list):
+            raise ValueError("Fates must be a list")
         self.name  = name
         self.dates = dates
         self.rates = rates

@@ -4,6 +4,7 @@ from src.dates.calendars.Brazil import Brazil
 from src.curves.curve import Curve, IRR, NullCurve
 from src.utils.getters import get_base
 
+
 class Product:
     def __init__(self):
         pass
@@ -222,6 +223,12 @@ class Portfolio:
 
     def NPV(self, val_date):
         value = 0
+
+        try:
+            self.products
+        except AttributeError:
+            return 0
+
         for i in self.products:
             value += i.NPV(val_date)
         return value

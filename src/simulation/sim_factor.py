@@ -8,6 +8,7 @@ def randCor(n_simul, M):
 
     return np.dot(np.dot(u, A), R).transpose()
 
+
 if __name__ == "__main__":
     # Simular factores a partir de una matriz de correlaciones
 

@@ -26,7 +26,7 @@ def splines(x, y, x0):
 
 def linear(x, y, x0):
     if isinstance(x0, (float, Date)):
-        return linearInterpol(x, y, x0)
+        return [linearInterpol(x, y, x0)]
 
     vector = [0] * len(x0)
 
@@ -75,6 +75,22 @@ class Curve:
 
     def __repr__(self):
         return str(self.name) + " " + str(len(self.dates)) + " tenors"
+
+    def __len__(self):
+        return len(self.rates)
+
+    def __add__(self, other):
+        if isinstance(other, float):
+            l = len(self)
+            dates = [0] * l
+            rates = [0] * l
+            for i in range(0, l):
+                dates[i] = self.dates[i]
+                rates[i] = self.rates[i] + other
+            x = Curve(name=self.name, dates=dates, rates=rates, compounding=self.compounding,
+                      interpolator=self.interpolator, calendar=self.calendar)
+            x.base = self.base
+            return x
 
     def rate(self, Date):
         return self.interpolator(self.dates,

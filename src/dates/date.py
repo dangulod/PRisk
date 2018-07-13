@@ -291,6 +291,9 @@ class Days:
     def __str__(self):
         return str(self.d) + " Days"
 
+    def __repr__(self):
+        return "Day(%d)" % (self.d)
+
 
 class Weeks:
     def __init__(self, w):
@@ -301,6 +304,10 @@ class Weeks:
     def __str__(self):
         return str(self.w) + " Weeks"
 
+    def __repr__(self):
+        return "Weeks(%d)" % (self.w)
+
+
 class Months:
     def __init__(self, m):
         if (( not isinstance(m, int) or not m > 0 )):
@@ -309,6 +316,10 @@ class Months:
 
     def __str__(self):
         return str(self.m) + " Months"
+
+    def __repr__(self):
+        return "Months(%d)" % (self.m)
+
 
 class Quarters:
     def __init__(self, q):
@@ -319,6 +330,10 @@ class Quarters:
     def __str__(self):
         return str(self.q) + " Quarters"
 
+    def __repr__(self):
+        return "Quarters(%d)" % (self.q)
+
+
 class Semesters:
     def __init__(self, s):
         if (( not isinstance(s, int) or not s > 0 )):
@@ -327,6 +342,9 @@ class Semesters:
 
     def __str__(self):
         return str(self.s) + " Semesters"
+
+    def __repr__(self):
+        return "Semesters(%d)" % (self.s)
 
 
 class Years:
@@ -337,6 +355,9 @@ class Years:
 
     def __str__(self):
         return str(self.y) + " Years"
+
+    def __repr__(self):
+        return "Years(%d)" % (self.y)
 
 
 if __name__ == "__main__":

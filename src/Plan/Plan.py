@@ -4,7 +4,7 @@ from src.dates.date import Date
 
 
 class Plan:
-    def __init__(self, liabilities: Liabilities, assets: Portfolio):
+    def __init__(self, liabilities: Liabilities, assets=Portfolio()):
         if not isinstance(liabilities, Liabilities):
             raise ValueError("liabilities must be class Liability class")
         if not isinstance(assets, Portfolio):
@@ -13,5 +13,5 @@ class Plan:
         self.liabilities = liabilities
 
     def GAP(self, val_date: Date):
-        return  self.assets.NPV(val_date) - self.liabilities.PBO(val_date)
+        return self.assets.NPV(val_date) - self.liabilities.PBO(val_date)
 

@@ -6,22 +6,30 @@ from src.utils.getters import get_base
 
 
 class Product:
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def NPV(self, val_date):
         pass
 
+    def __add__(self, other):
+        if isinstance(other, Product):
+            p = Portfolio()
+            p + self
+            p + other
+            return p
+
 
 class BondZeroCoupon(Product):
     def __init__(self, nominal, startDate, matDate, curve_irr,
-                 curve_spread, base="ACT/365", calendar = Calendar()):
+                 curve_spread, base="ACT/365", calendar=Calendar(), **kwargs):
         if not isinstance(calendar, Calendar):
             raise ValueError("calendar must be a calendar class")
         if not isinstance(startDate, Date) or not isinstance(matDate, Date):
             raise ValueError("startDate and matDate must be Date classes")
         if not isinstance(curve_irr, Curve) or not isinstance(curve_spread, Curve):
             raise ValueError("curve_irr and curve_spread must be Curve classes")
+        super().__init__(**kwargs)
         self.nominal = nominal
         self.startDate = startDate
         self.matDate = matDate
@@ -34,8 +42,8 @@ class BondZeroCoupon(Product):
         return val_date > self.matDate
 
     def discount(self, val_date):
-        irr    = self.curve_irr.rate(self.matDate)
-        spread = self.curve_spread.rate(self.matDate)
+        irr    = self.curve_irr.rate(self.matDate)[0]
+        spread = self.curve_spread.rate(self.matDate)[0]
         return irr + spread
 
     def NPV(self, val_date):
@@ -47,12 +55,12 @@ class BondZeroCoupon(Product):
 
 class Bond(BondZeroCoupon):
     def __init__(self, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
-                 frequency, base="ACT/365", calendar=Calendar()):
+                 frequency, base="ACT/365", calendar=Calendar(), **kwargs):
         super().__init__(nominal, startDate, matDate, curve_irr,
-                         curve_spread, base=base, calendar=calendar)
+                         curve_spread, base=base, calendar=calendar, **kwargs)
         if ( not isinstance(frequency, int) or frequency < 1 ):
             raise ValueError("frequency must be an integer greater than 0. Consider the BondZeroCoupon pricer")
-        self.coupon       = coupon
+        self.coupon     = coupon
         self.frequency  = int(12 / frequency)
 
     def couponPayment(self, val_date):
@@ -91,9 +99,9 @@ class Bond(BondZeroCoupon):
 
 class NTN_B_P(BondZeroCoupon):
     def __init__(self, nominal, startDate, matDate, curve_irr, IPCA, IPCA_p, day=15,
-                 curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil()):
+                 curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil(), **kwargs):
         super().__init__(nominal, startDate, matDate, curve_irr,
-                         curve_spread=curve_spread, base=base, calendar=calendar)
+                         curve_spread=curve_spread, base=base, calendar=calendar, **kwargs)
         self.day    = day
         self.IPCA   = IPCA
         self.IPCA_p = IPCA_p
@@ -122,10 +130,10 @@ class NTN_B_P(BondZeroCoupon):
 
 class IndexedNominalBond(Bond):
     def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, index,
-                 index_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar()):
+                 index_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar(), **kwargs):
         super().__init__(nominal, startDate, matDate,
                          curve_irr, curve_spread, coupon,
-                         frequency, base=base, calendar=calendar)
+                         frequency, base=base, calendar=calendar, **kwargs)
         self.day     = day
         self.index   = index
         self.index_p = index_p
@@ -174,9 +182,9 @@ class IndexedNominalBond(Bond):
 
 class NTN_B(IndexedNominalBond):
     def __init__(self, nominal, startDate, matDate, curve_irr, coupon, frequency, IPCA,
-                 IPCA_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil()):
+                 IPCA_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil(), **kwargs):
         super().__init__(nominal, startDate, matDate, curve_irr, coupon, frequency, index=IPCA,
-                         index_p=IPCA_p, day=day, curve_spread=curve_spread, base=base, calendar=calendar)
+                         index_p=IPCA_p, day=day, curve_spread=curve_spread, base=base, calendar=calendar, **kwargs)
 
     def VNA(self, val_date: Date):
         return super().VNA(val_date)
@@ -187,7 +195,7 @@ class NTN_B(IndexedNominalBond):
 
 
 class Equity(Product):
-    def __init__(self, nominal, factor):
+    def __init__(self, nominal, factor, **kwargs):
         self.nominal = nominal
         self.factor = factor
 
@@ -196,7 +204,7 @@ class Equity(Product):
 
 
 class Cash(Product):
-    def __init__(self, value):
+    def __init__(self, value, **kwargs):
         self.value = value
 
     def NPV(self, val_date):
@@ -205,15 +213,12 @@ class Cash(Product):
 
 class Portfolio:
     def __init__(self):
-        pass
+        self.products = []
 
     def append(self, p):
         if ( not isinstance(p, Product) ):
             raise ValueError("p must be a Product")
-        try:
-            self.products.append(p)
-        except AttributeError:
-            self.products = [p]
+        self.products.append(p)
 
     def __add__(self, other):
         self.append(other)
@@ -221,16 +226,30 @@ class Portfolio:
     def __getitem__(self, item):
         return self.products[item]
 
-    def NPV(self, val_date):
-        value = 0
+    def __len__(self):
+        return len(self.products)
 
-        try:
-            self.products
-        except AttributeError:
+    def __str__(self):
+        return "PORTFOLIO with " + str(len(self)) + " products"
+
+    def __repr__(self):
+        return "PORTFOLIO with " + str(len(self)) + " products"
+
+    @staticmethod
+    def create_portfolio(list):
+        x = Portfolio()
+        for i in list:
+            x + i
+        return x
+
+    def NPV(self, val_date):
+        if self.__len__() == 0:
             return 0
 
+        value = 0
         for i in self.products:
             value += i.NPV(val_date)
+
         return value
 
 

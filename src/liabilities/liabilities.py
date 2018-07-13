@@ -13,6 +13,12 @@ class Liabilities:
         self.curve_spread = curve_spread
         self.curve_inf = curve_inf
 
+    def __len__(self):
+        return len(self.flows)
+
+    def __str__(self):
+        return "LIABILITIES with " + str(len(self)) + " years"
+
     def duration(self, val_date: Date):
         irr = self.curve_irr.rate(self.dates)
         spread = self.curve_spread.rate(self.dates)

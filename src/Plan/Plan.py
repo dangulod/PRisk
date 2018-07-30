@@ -1,6 +1,6 @@
 from src.assets.products import Portfolio
 from src.liabilities.liabilities import Liabilities
-from src.dates.date import Date
+from src.dates.date import Date, Years
 
 
 class Plan:
@@ -12,6 +12,6 @@ class Plan:
         self.assets = assets
         self.liabilities = liabilities
 
-    def GAP(self, val_date: Date):
-        return self.assets.NPV(val_date) - self.liabilities.PBO(val_date)
+    def GAP(self, val_date: Date, t=Years(1)):
+        return self.assets.NPV(val_date=val_date, t=t) - self.liabilities.PBO(val_date)
 

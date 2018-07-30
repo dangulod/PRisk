@@ -1,0 +1,42 @@
+from src.assets.products import Bond
+from src.dates.date import Date
+from scipy.optimize import minimize
+
+def VAN(coupon, bond: Bond, val_date: Date):
+    bond.coupon = coupon
+    return bond.NPV(val_date)
+
+
+def fitness(coupon, bond: Bond, val_date: Date):
+    return bond.nominal - VAN(coupon=coupon, bond=bond, val_date=val_date)
+
+
+def proxyBond(bond: Bond, val_date: Date):
+    fit = lambda coupon: abs(VAN(coupon=coupon, bond=bond, val_date=val_date) - bond.nominal)
+    return float(minimize(fit, bond.coupon, method='Nelder-Mead', tol=1e-9).x[0])
+
+
+if __name__ == "__main__":
+    from src.curves.curve import Curve, NullCurve
+    from src.dates.date import Days, Months
+
+    valDate = Date(31, 5, 2017)
+
+    PT_BOND = Curve(name="PT_BOND",
+                    dates=[valDate + Days(60), valDate + Days(90), valDate + Days(720),
+                           valDate + Days(1080), valDate + Days(1800), valDate + Days(2520),
+                           valDate + Days(3600)],
+                    rates=[-0.00326, -0.00382, -0.00172, -0.00035, 0.00401, 0.01029, 0.01908])
+
+    b1 = Bond(nominal=4776736, startDate=Date(4, 3, 2015), matDate=Date(30, 7, 2030),
+              curve_irr=PT_BOND, coupon=0.0178246127679505, curve_spread=NullCurve(),
+              frequency=1, base="ACT/365")
+
+    x = proxyBond(bond=b1, val_date=valDate)
+
+    print(x)
+
+    print(b1.nominal)
+    b1.coupon = x
+    print(b1.NPV(valDate))
+

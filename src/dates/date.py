@@ -282,8 +282,14 @@ class Date:
         return "Date(%d, %d, %d)" % (self.day(), self.month(), self.year())
 
 
-class Days:
+class Periods:
+    def __init__(self):
+        pass
+
+
+class Days(Periods):
     def __init__(self, d):
+        super().__init__()
         if (( not isinstance(d, int) or not d >= 0 )):
             raise ValueError("d must be a positive integer")
         self.d = d
@@ -295,8 +301,9 @@ class Days:
         return "Day(%d)" % (self.d)
 
 
-class Weeks:
+class Weeks(Periods):
     def __init__(self, w):
+        super().__init__()
         if (( not isinstance(w, int) or not w > 0 )):
             raise ValueError("w must be a positive integer")
         self.w = w
@@ -308,8 +315,9 @@ class Weeks:
         return "Weeks(%d)" % (self.w)
 
 
-class Months:
+class Months(Periods):
     def __init__(self, m):
+        super().__init__()
         if (( not isinstance(m, int) or not m > 0 )):
             raise ValueError("m must be a positive integer")
         self.m = m
@@ -321,8 +329,9 @@ class Months:
         return "Months(%d)" % (self.m)
 
 
-class Quarters:
+class Quarters(Periods):
     def __init__(self, q):
+        super().__init__()
         if (( not isinstance(q, int) or not q > 0 )):
             raise ValueError("q must be a positive integer")
         self.q = q
@@ -334,8 +343,9 @@ class Quarters:
         return "Quarters(%d)" % (self.q)
 
 
-class Semesters:
+class Semesters(Periods):
     def __init__(self, s):
+        super().__init__()
         if (( not isinstance(s, int) or not s > 0 )):
             raise ValueError("s must be a positive integer")
         self.s = s
@@ -347,8 +357,9 @@ class Semesters:
         return "Semesters(%d)" % (self.s)
 
 
-class Years:
+class Years(Periods):
     def __init__(self, y):
+        super().__init__()
         if (( not isinstance(y, int) or not y > 0 )):
             raise ValueError("y must be a positive integer")
         self.y = y

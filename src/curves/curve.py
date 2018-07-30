@@ -99,7 +99,14 @@ class Curve:
 
     def discount(self, val_date, date):
         rates = self.rate(date)
-        return 1 / (self.compounding(rates, 1) ** self.base.yearFraction(val_date, date, self.calendar))
+        l = len(date)
+        dis = [0] * l
+        if isinstance(date, Date): date = [date]
+
+        for i in range(0, l):
+            dis[i] = 1 / (self.compounding(rates[i], 1) ** self.base.yearFraction(val_date, date[i], self.calendar))
+
+        return dis
 
 
 class NullCurve(Curve):
@@ -135,6 +142,17 @@ def get_curve(name, array):
         raise ValueError("curve %s not found" % name)
 
 
+def copy_curve(curve_from: Curve):
+    l = len(curve_from)
+    dates = curve_from.dates
+    name = curve_from.name
+    rates = [0] * l
+    for i in range(0, l):
+        rates[i] = curve_from.rates[i]
+    x = Curve(name, dates, rates, compounding=curve_from.compounding, interpolator=curve_from.interpolator)
+    x.base = curve_from.base
+    return x
+
 
 if __name__ == "__main__":
 
@@ -150,6 +168,6 @@ if __name__ == "__main__":
 
     PT_BOND = Curve("PT_BOND", days, rates, base="BUSS/252")
 
-    print(PT_BOND.rate([Date(31, 1, 2019), Date(31, 1, 2020)]))
+    print(PT_BOND.rate([valDate + Days(20), Date(31, 1, 2020)]))
     print(PT_BOND.discount(valDate, Date(31, 1, 2020)))
 

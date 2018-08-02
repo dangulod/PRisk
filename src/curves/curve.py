@@ -1,6 +1,6 @@
 from math import exp
 from src.utils.utils import which, where
-from src.dates.date import Date
+from src.dates.date import Date, Periods
 from src.utils.getters import get_base
 from src.dates.calendar import Calendar
 
@@ -37,7 +37,7 @@ def linear(x, y, x0):
 
 
 def linearInterpol(x, y, x0):
-    if x0 > x[len(x) - 1]: return y[len(x) - 1]
+    if x0 >= x[len(x) - 1]: return y[len(x) - 1]
 
     pos = which(x, x0)
 
@@ -96,6 +96,18 @@ class Curve:
         return self.interpolator(self.dates,
                                  self.rates,
                                  Date)
+
+    def FWD(self, val_date: Date, t: Periods):
+        l = len(self)
+        fwds = [0] * l
+
+        for i in range(0, l):
+            d = self.base.yearFraction(val_date + t, self.dates[i] + t, calendar=self.calendar)
+            dd1 = self.discount(val_date, val_date + t)[0]
+            dd2 = self.discount(val_date, self.dates[i] + t )[0]
+            fwds[i] = (dd1 / dd2) ** (1 / d) - 1
+
+        return fwds
 
     def discount(self, val_date, date):
         rates = self.rate(date)
@@ -156,7 +168,7 @@ def copy_curve(curve_from: Curve):
 
 if __name__ == "__main__":
 
-    from src.dates.date import Date, Days
+    from src.dates.date import Date, Days, Years
 
     valDate = Date(31, 12, 2017)
 
@@ -166,8 +178,10 @@ if __name__ == "__main__":
     rates = [-0.00326, -0.00382, -0.00172, -0.00035,
               0.00401, 0.01029, 0.01908]
 
-    PT_BOND = Curve("PT_BOND", days, rates, base="BUSS/252")
+    PT_BOND = Curve("PT_BOND", days, rates)
 
-    print(PT_BOND.rate([valDate + Days(20), Date(31, 1, 2020)]))
-    print(PT_BOND.discount(valDate, Date(31, 1, 2020)))
+    print(PT_BOND.FWD(valDate, t=Years(1)))
+
+    #print(PT_BOND.rate([valDate + Days(20), Date(31, 1, 2020)]))
+    #print(PT_BOND.discount(valDate, Date(31, 1, 2020)))
 

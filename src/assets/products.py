@@ -69,8 +69,8 @@ class Bond(BondZeroCoupon):
         coup = [self.matDate]
         while (( self.matDate - Months(self.frequency * i) >= val_date ) and
                ( self.matDate - Months(self.frequency * i) > self.startDate )):
-            # day = self.matDate - Months(self.frequency * i)
-            day = self.calendar.nextBusinessDay(self.matDate - Months(self.frequency * i))
+            day = self.matDate - Months(self.frequency * i)
+            # day = self.calendar.nextBusinessDay(self.matDate - Months(self.frequency * i))
             coup = [day] + coup
             i += 1
         return coup

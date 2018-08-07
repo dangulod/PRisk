@@ -1,17 +1,23 @@
 from src.assets.products import Portfolio
 from src.liabilities.liabilities import Liabilities
-from src.dates.date import Date, Years
+from src.dates.date import Date, Years, Periods
 
 
 class Plan:
-    def __init__(self, liabilities: Liabilities, assets=Portfolio()):
+    def __init__(self, val_date: Date, t: Periods, liabilities: Liabilities, assets=Portfolio()):
         if not isinstance(liabilities, Liabilities):
             raise ValueError("liabilities must be class Liability class")
         if not isinstance(assets, Portfolio):
             raise ValueError("assets must be a Portfolio class")
-        self.assets = assets
+        if not isinstance(t, Periods):
+            raise ValueError("t is not a Period class")
+        if not isinstance(val_date, Date):
+            raise ValueError("t is not a Date class")
+        self.assets      = assets
         self.liabilities = liabilities
+        self.val_date    = val_date
+        self.t           = t
 
-    def GAP(self, val_date: Date, t=Years(1)):
-        return self.assets.NPV(val_date=val_date, t=t) - self.liabilities.PBO(val_date)
+    def GAP(self):
+        return self.assets.NPV() - self.liabilities.PBO()
 

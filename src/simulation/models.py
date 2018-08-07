@@ -4,65 +4,63 @@ from math import log, exp, sqrt
 
 
 class Model:
-    def __init__(self):
-        pass
-
+    def __init__(self, val_date: Date, t: Periods, flag: bool):
+        if not isinstance(flag, bool):
+            raise ValueError("flag is not boolean")
+        if not isinstance(t, Periods):
+            raise ValueError("t is not a Period class")
+        if not isinstance(val_date, Date):
+            raise ValueError("t is not a Date class")
+        self.val_date = val_date
+        self.t        = t
+        self.flag     = flag
 
 class HullWhite(Model):
     '''
     MRV: Mean Reversion Volatility (sigma)
     MRS: Mean Reversion Speed (alpha)
     '''
-    def __init__(self, curve: Curve, MRV, MRS, flag: bool):
-        super().__init__()
+    def __init__(self, curve: Curve, MRV, MRS, val_date: Date, t: Periods, flag: bool):
+        super().__init__(val_date=val_date, t=t, flag=flag)
         if not isinstance(curve, Curve):
             raise ValueError("Curve is not a Curve class")
-        if not isinstance(flag, bool):
-            raise ValueError("flag is not boolean")
         self.curve = curve
-        self.MRV = MRV
-        self.MRS = MRS
-        self.flag = flag
+        self.MRV   = MRV
+        self.MRS   = MRS
+        self.dt = self.curve.base.yearFraction(d1=self.val_date, d2=self.val_date + self.t, calendar=self.curve.calendar)
 
-    def sim(self, val_date, t, random):
-        if not isinstance(t, Periods):
-            raise ValueError("t is not a Period class")
-        if not isinstance(val_date, Date):
-            raise ValueError("t is not a Date class")
-
+    def sim(self, random):
         l = len(self.curve.rates)
         rates = [0] * l
 
-        dt = self.curve.base.yearFraction(d1=val_date, d2=val_date + t, calendar=self.curve.calendar)
-
-        dfT = self.curve.discount(val_date=val_date, date=val_date + t)[0]
-        dftt = self.curve.discount(val_date=val_date, date=val_date + t + Days(1))[0]
+        dfT = self.curve.discount(val_date=self.val_date, date=self.val_date + self.t)[0]
+        dftt = self.curve.discount(val_date=self.val_date, date=self.val_date + self.t + Days(1))[0]
         fm0t = -(log(dftt) - log(dfT)) * 365
 
-        dfT = self.curve.discount(val_date=val_date, date=val_date + t)[0]
-        dftt = self.curve.discount(val_date=val_date, date=val_date + t + Days(1))[0]
+        dfT = self.curve.discount(val_date=self.val_date, date=self.val_date + self.t)[0]
+        dftt = self.curve.discount(val_date=self.val_date, date=self.val_date + self.t + Days(1))[0]
         fm0s = -(log(dftt) - log(dfT)) * 365
 
-        alfat = fm0t + self.MRV ** 2 / (2 * self.MRS ** 2) * (1 - exp(-self.MRS * dt)) ** 2
+        alfat = fm0t + self.MRV ** 2 / (2 * self.MRS ** 2) * (1 - exp(-self.MRS * self.dt)) ** 2
         alfas = fm0s
 
         rs = self.curve.rates[0]
 
-        ert = rs * exp(-self.MRS * dt) + alfat - alfas * exp(-self.MRS * dt)
+        ert = rs * exp(-self.MRS * self.dt) + alfat - alfas * exp(-self.MRS * self.dt)
 
-        vart = self.MRV ** 2 / (2 * self.MRS) * (1 - exp(-2 * self.MRS * dt))
+        vart = self.MRV ** 2 / (2 * self.MRS) * (1 - exp(-2 * self.MRS * self.dt))
 
         rt = ert + sqrt(vart) * random
 
         for i in range(0, l):
-            dtenor = self.curve.base.yearFraction(d1=val_date, d2=self.curve.dates[i], calendar=self.curve.calendar)
+            dtenor = self.curve.base.yearFraction(d1=self.val_date, d2=self.curve.dates[i], calendar=self.curve.calendar)
             BTT = 1 / self.MRS * (1 - exp(-self.MRS * dtenor))
-            dfT = self.curve.discount(val_date=val_date, date=val_date + t)[0]
-            dftt = self.curve.discount(val_date=val_date, date=self.curve.dates[i] + t)[0]
+            dfT = self.curve.discount(val_date=self.val_date, date=self.val_date + self.t)[0]
+            dftt = self.curve.discount(val_date=self.val_date, date=self.curve.dates[i] + self.t)[0]
             AtT = dftt / dfT * exp(BTT * fm0t - self.MRV ** 2 / (4 * self.MRS) *
-                                   (1 - exp(-2 * self.MRS * dt)) * BTT ** 2)
+                                   (1 - exp(-2 * self.MRS * self.dt)) * BTT ** 2)
             PtT = AtT * exp(-BTT * rt)
-            rates[i] = (1 / PtT) ** (365 / (self.curve.dates[i] - val_date)) - 1
+            rates[i] = (1 / PtT) ** (365 / (self.curve.dates[i] - self.val_date)) - 1
 
         return rates
 
@@ -71,17 +69,13 @@ class LnFwd(Model):
 
     '''
     def __init__(self, curve: Curve, vol, val_date: Date, t: Periods, flag: bool):
-        super().__init__()
-        if not isinstance(flag, bool):
-            raise ValueError("flag is not boolean")
-
-        self.curve    = curve
-        self.vol      = vol
-        self.val_date = val_date
-        self.dt       = self.curve.base.yearFraction(d1=val_date, d2=val_date + t, calendar=self.curve.calendar)
-        self.t        = t
-        self.flag     = flag
-        self.fwd      = self.curve.FWD(val_date, t)
+        super().__init__(val_date=val_date, t=t, flag=flag)
+        if not isinstance(curve, Curve):
+            raise ValueError("Curve is not a Curve class")
+        self.curve = curve
+        self.vol   = vol
+        self.dt    = self.curve.base.yearFraction(d1=self.val_date, d2=self.val_date + t, calendar=self.curve.calendar)
+        self.fwd   = self.curve.FWD(val_date, t)
 
     def sim(self, random):
         l = len(self.curve)
@@ -108,8 +102,8 @@ if __name__ == "__main__":
                         0.015345800, 0.015695800, 0.016020800, 0.016703720, 0.017590600, 0.017704851, 0.018735400,
                         0.019405200, 0.019725000])
 
-    IPCA_m = HullWhite(curve=IPCA, MRV=0.0025, MRS=0.01, flag=True)
-    #print(IPCA_m.sim(val_date=valDate, t=Days(29), random=0.167728385139152))
+    IPCA_m = HullWhite(curve=IPCA, MRV=0.0025, MRS=0.01, val_date=valDate, t=Days(363), flag=True)
+    for i in IPCA_m.sim(random=0.167728385139152): print(i)
 
     iBoxx = Curve(name="iBoxx",
                   dates=[valDate + Days(691), valDate + Days(1397), valDate + Days(2056), valDate + Days(3035),
@@ -118,4 +112,4 @@ if __name__ == "__main__":
                         0.0093255253059078600, 0.0130000000000000000, 0.0153331790380074000, 0.0174148226736888000])
 
     iBoxx_m = LnFwd(curve=iBoxx, vol=0.080276396187267, val_date=valDate, t=Days(363), flag=True)
-    for i in (iBoxx_m.sim(-0.346714768955995)): print(i)
+    #for i in (iBoxx_m.sim(-0.346714768955995)): print(i)

@@ -3,6 +3,7 @@ from src.utils.utils import which, where
 from src.dates.date import Date, Periods
 from src.utils.getters import get_base
 from src.dates.calendar import Calendar
+import numpy as np
 
 def simple(r, t):
     return (1 + r * t)
@@ -61,7 +62,7 @@ class Curve:
         if not isinstance(dates, list):
             raise ValueError("Dates must be a list")
         if not isinstance(rates, list):
-            raise ValueError("Fates must be a list")
+            raise ValueError("Rates must be a list")
         self.name  = name
         self.dates = dates
         self.rates = rates
@@ -91,11 +92,63 @@ class Curve:
                       interpolator=self.interpolator, calendar=self.calendar)
             x.base = self.base
             return x
+        if isinstance(other, Curve):
+            dates = list(np.unique(self.dates + other.dates))
+            l     = len(dates)
+            rates = [0] * l
+            r1    = self.rate(dates)
+            r2    = other.rate(dates)
+
+            for i in range(0, l):
+                rates[i] = r1[i] + r2[i]
+
+            curva = Curve(name=self.name + "+" + other.name,
+                          dates=dates,
+                          rates=rates,
+                          interpolator=self.interpolator,
+                          compounding=self.compounding,
+                          calendar=self.calendar)
+            curva.base = self.base
+            return curva
+        if isinstance(other, NullCurve):
+            return self
 
     def rate(self, Date):
         return self.interpolator(self.dates,
                                  self.rates,
                                  Date)
+
+    def simple_forward(self, val_date: Date, t1: Date, t2: Date):
+        '''
+        Simple compounding is used for the forward rate
+        '''
+        ft1 = self.discount(val_date=val_date, date=t1)[0]
+        ft2 = self.discount(val_date=val_date, date=t2)[0]
+        yf  = self.base.yearFraction(d1=t1, d2=t2, calendar=self.calendar)
+
+        return ((ft1 / ft2) - 1) / yf
+
+    def compounded_forward(self, val_date: Date, t1: Date, t2: Date):
+        '''
+        Compounded compounding is used for the forward rate
+        '''
+        ft1 = self.discount(val_date=val_date, date=t1)[0]
+        ft2 = self.discount(val_date=val_date, date=t2)[0]
+        yf  = self.base.yearFraction(d1=t1, d2=t2, calendar=self.calendar)
+
+        return ((ft1 / ft2)) ** (1 / yf) - 1
+
+    def continuous_forward(self, val_date: Date, t1: Date, t2: Date):
+        '''
+        Compounded compounding is used for the forward rate
+        '''
+        ft1 = self.rate(Date=t1)[0]
+        ft2 = self.rate(Date=t2)[0]
+        y1  = self.base.dayCount(d1=val_date, d2=t1, calendar=self.calendar)
+        y2  = self.base.dayCount(d1=val_date, d2=t2, calendar=self.calendar)
+        yff = self.base.dayCount(d1=t1, d2=t2, calendar=self.calendar)
+
+        return (ft2 * y2 - ft1 * y1) / yff
 
     def FWD(self, val_date: Date, t: Periods):
         l = len(self)
@@ -109,7 +162,7 @@ class Curve:
 
         return fwds
 
-    def discount(self, val_date, date):
+    def discount(self, val_date: Date, date: Date):
         rates = self.rate(date)
         l = len(date)
         dis = [0] * l
@@ -123,7 +176,8 @@ class Curve:
 
 class NullCurve(Curve):
     def __init__(self):
-        pass
+        self.name  = ""
+        self.dates = []
 
     def __str__(self):
         return "NullCurve"
@@ -140,10 +194,15 @@ class NullCurve(Curve):
 class IRR(Curve):
     def __init__(self, irr):
         self.irr = irr
+        self.name = ""
+        self.dates = []
 
     def rate(self, Date):
         return [self.irr] * len(Date)
 
+    def __add__(self, other):
+        if isinstance(other, NullCurve):
+            return self
 
 def get_curve(name, array):
     if ( name == "None" ):
@@ -178,10 +237,28 @@ if __name__ == "__main__":
     rates = [-0.00326, -0.00382, -0.00172, -0.00035,
               0.00401, 0.01029, 0.01908]
 
-    PT_BOND = Curve("PT_BOND", days, rates)
+    days1 = [valDate + Days(180), valDate + Days(365), valDate + Days(725), valDate + Days(1080),
+            valDate + Days(1800), valDate + Days(2525), valDate + Days(3600)]
 
+    rates1 = [-0.00326, -0.00382, -0.00172, -0.00035,
+             0.00401, 0.01029, 0.01908]
+
+    PT_BOND = Curve("PT_BOND", days, rates)
+    ES_BOND = Curve("ES_BOND", days1, rates1)
+
+    import numpy as np
+
+    print(np.unique(PT_BOND.dates + ES_BOND.dates))
+
+    print((PT_BOND + ES_BOND).rates)
+
+    print(PT_BOND.simple_forward(valDate, Date(31, 12, 2018), Date(31, 12, 2020)))
+    print(PT_BOND.compounded_forward(valDate, Date(31, 12, 2018), Date(31, 12, 2020)))
+    print(PT_BOND.continuous_forward(valDate, Date(31, 12, 2018), Date(31, 12, 2020)))
     print(PT_BOND.FWD(valDate, t=Years(1)))
 
+    print((PT_BOND + IRR(0.1)).rates)
+    print((PT_BOND + NullCurve()).rates)
     #print(PT_BOND.rate([valDate + Days(20), Date(31, 1, 2020)]))
     #print(PT_BOND.discount(valDate, Date(31, 1, 2020)))
 

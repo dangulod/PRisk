@@ -3,6 +3,7 @@ from src.dates.calendar import Calendar
 from src.dates.calendars.Brazil import Brazil
 from src.curves.curve import Curve, IRR, NullCurve
 from src.utils.getters import get_base
+from src.simulation.factor import Factor
 
 
 class Product:
@@ -67,7 +68,7 @@ class Bond(BondZeroCoupon):
             raise ValueError("frequency must be an integer greater than 0. Consider the BondZeroCoupon pricer")
         self.coupon     = coupon
         self.frequency  = int(12 / frequency)
-        self.c_dates = self.couponPayment()
+        self.c_dates    = self.couponPayment()
 
     def couponPayment(self):
         if (self.val_date > self.matDate): return 0
@@ -84,23 +85,23 @@ class Bond(BondZeroCoupon):
     def NPV(self):
         if (self.val(self.val_date)): return 0
 
-        f = self.frequency / 12
-        c = ((1 + self.coupon) ** (f) - 1)
+        f = 12 / self.frequency
+        c = self.coupon / f
+        # c = ((1 + self.coupon) ** (f) - 1)
 
-        irr = self.curve_irr.rate(self.c_dates)
-        spread = self.curve_spread.rate(self.c_dates)
-        l = len(irr)
-        r = [0] * l
+        curve = self.curve_irr + self.curve_spread
+        r = curve.rate(self.c_dates)
+
+        l = len(self.c_dates)
+
         value = 0
 
-        for i in range(0, l): r[i] = irr[i] + spread[i]
-
         for i in range(0, l):
-            value += (c * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(self.val_date, self.c_dates[i], self.calendar))
+            value += c / (1 + r[i]) ** self.base.yearFraction(self.val_date, self.c_dates[i], calendar=self.calendar)
 
-        value += self.nominal / ((1 + r[l - 1]) ** self.base.yearFraction(self.val_date, self.matDate, self.calendar))
+        value += 1 / ((1 + r[l - 1]) ** self.base.yearFraction(self.val_date, self.matDate, self.calendar))
 
-        return value
+        return value * self.nominal
 
 
 class BondFloating(Bond):
@@ -113,23 +114,22 @@ class BondFloating(Bond):
     def NPV(self):
         if (self.val(self.val_date)): return 0
 
-        f = self.frequency / 12
-        c = ((1 + self.coupon) ** (f) - 1)
+        curve = self.curve_irr + self.curve_spread
 
-        irr = self.curve_irr.rate(self.c_dates)
-        spread = self.curve_spread.rate(self.c_dates)
-        l = len(irr)
-        r = [0] * l
-        value = 0
+        l = len(self.c_dates)
 
-        for i in range(0, l): r[i] = irr[i] + spread[i]
+        cf = [0] * l
+        cf[0] = curve.rate(self.val_date + Months(self.frequency))[0] * self.frequency / 12
 
-        for i in range(0, l):
-            value += (c * self.nominal) / ((1 + r[i]) ** self.base.yearFraction(self.val_date, self.c_dates[i], self.calendar))
+        d = curve.discount(self.val_date, self.c_dates)
+        value = cf[0] * d[0]
+        for i in range(1, l):
+            cf[i] = curve.simple_forward(val_date=self.val_date, t1=self.c_dates[i - 1], t2=self.c_dates[i]) * self.frequency / 12
+            value += cf[i] * d[i]
 
-        value += self.nominal / ((1 + r[l - 1]) ** self.base.yearFraction(self.val_date, self.matDate, self.calendar))
+        value += 1 * d[l - 1]
 
-        return value
+        return value * self.nominal
 
 
 class NTN_B_P(BondZeroCoupon):
@@ -202,13 +202,12 @@ class IndexedNominalBond(Bond):
 
         f = self.frequency / 12
 
-        irr = self.curve_irr.rate(self.c_dates)
-        spread = self.curve_spread.rate(self.c_dates)
-        l = len(irr)
-        r = [0] * l
+        l = len(self.c_dates)
+
         value = 0
 
-        for i in range(0, l): r[i] = irr[i] + spread[i]
+        curve = self.curve_irr + self.curve_spread
+        r     = curve.rate(self.c_dates)
 
         for i in range(0, l):
             value += (((1 + self.coupon) ** ( f ) - 1 ) / (
@@ -235,13 +234,13 @@ class NTN_B(IndexedNominalBond):
 
 
 class Equity(Product):
-    def __init__(self, val_date: Date, t: Periods, nominal, factor, **kwargs):
+    def __init__(self, val_date: Date, t: Periods, nominal, factor: Factor, **kwargs):
         super().__init__(val_date=val_date, t=t)
         self.nominal = nominal
-        self.factor = factor
+        self.factor  = factor
 
     def NPV(self):
-        return self.nominal # * self.factor
+        return self.nominal * self.factor.getFactor()
 
 
 class Cash(Product):
@@ -300,6 +299,14 @@ if __name__ == "__main__":
     val_date = Date(31,12, 2017)
     t        = Years(1)
     carter   = Portfolio()
+
+    IT_BOND = Curve(name="IT_BOND",
+                    dates= [Date(31, 5, 2018) + Days(90) , Date(31, 5, 2018) + Days(180) , Date(31, 5, 2018) + Days(360),
+                            Date(31, 5, 2018) + Days(720), Date(31, 5, 2018) + Days(1080), Date(31, 5, 2018) + Days(2160),
+                            Date(31, 5, 2018) + Days(2520), Date(31, 5, 2018) + Days(2880), Date(31, 5, 2018) + Days(3600),
+                            Date(31, 5, 2018) + Days(5400), Date(31, 5, 2018) + Days(5580)],
+                    rates=[-0.00223, 0.00205, 0.00515, 0.00991, 0.01342, 0.02326,
+                           0.02385, 0.02560, 0.02771, 0.03047, 0.03047])
 
     PT_BOND = Curve(name="PT_BOND",
                     dates=[val_date + Days(180), val_date + Days(360), val_date + Days(720),
@@ -360,19 +367,20 @@ if __name__ == "__main__":
     b7 = BondFloating(val_date=val_date, t=t, nominal=10064000, startDate=Date( 8,11, 2007), matDate=Date(23,12,2044),
                       curve_irr=iBoxx, curve_spread=NullCurve(), coupon=0, base="30/360", frequency=1)
 
+    b8 = BondFloating(val_date=Date(31, 5, 2018), t=Years(1), nominal=4929515, startDate=Date( 3, 5, 2015),
+                      matDate=Date(3, 5, 2025), curve_irr=IT_BOND, curve_spread=NullCurve(),coupon=0,
+                      base="30/360", frequency=4)
 
-    '''
     print(bc.NPV())
     print(b1.NPV())
+    print(bu.NPV())
     print(b3.NPV())
+    
     print(b4.NPV())
-    '''
-
-    print(b4.NPV())
-    print(b3.NPV())
-    print(b1.NPV())
+    print(b5.NPV())
     print(b6.NPV())
-    '''
-    c = b1.couponPayment()
-    for i in c: print(i)
-    '''
+    print(b7.NPV())
+    print(b8.NPV())
+
+    for i in b1.couponPayment(): print(i)
+

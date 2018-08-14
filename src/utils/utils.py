@@ -9,6 +9,12 @@ def where(x, a):
     raise ValueError("Value not found")
 
 
+def find(x: list, a: str):
+    for i in range(0, len(a)):
+        if (x[i] == a): return i
+    raise  ValueError("Value not found")
+
+
 def split(df, group):
     gb = df.groupby(group)
     return [gb.get_group(x) for x in gb.groups]

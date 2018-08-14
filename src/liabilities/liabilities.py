@@ -41,11 +41,12 @@ class Liabilities:
         return num / den
 
     def PBO(self):
+
+        curve = self.curve_irr + self.curve_spread
+
         m      = self.val_date.month()
         inf    = self.curve_inf.rate(self.val_date + Days(self.duration))[0]
-        irr    = self.curve_irr.rate(self.val_date + Days(self.duration))[0]
-        spread = self.curve_spread.rate(self.val_date + Days(self.duration))[0]
-        r      = irr + spread
+        r      = curve.rate(self.val_date + Days(self.duration))[0]
 
         l  = len(self.dates)
         d  = 0
@@ -86,5 +87,5 @@ if __name__ == "__main__":
                                     flows=x.CF.tolist(),
                                     curve_irr=get_curve(x.Curve.unique()[0], curves)))
 
-    print(l[0].duration())
+    print(l[0].duration)
     print(l[0].PBO())

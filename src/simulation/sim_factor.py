@@ -4,7 +4,7 @@ def randCor(n_simul, M):
     u, s, v = np.linalg.svd(M)
     A = np.zeros((M.shape))
     np.fill_diagonal(A, np.sqrt(s))
-    R = np.random.normal(0, 1, ( M.shape[1], n_simul))
+    R = np.random.normal(0, 1, ( M.shape[1], n_simul), )
 
     return np.dot(np.dot(u, A), R).transpose()
 

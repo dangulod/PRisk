@@ -205,6 +205,9 @@ class Date:
         wday = self.serialNumber % 7
         return wday if wday != 0 else 7
 
+    def __hash__(self):
+        return hash(self.serialNumber)
+
     def __len__(self):
         return 1
 

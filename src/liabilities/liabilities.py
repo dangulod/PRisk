@@ -3,19 +3,30 @@ from src.curves.curve import Curve, NullCurve, IRR
 from src.dates.conventions import Actual365, Thirty360
 from src.dates.calendar import Calendar
 
-class Liabilities:
-    def __init__(self, val_date: Date, dates, flows, curve_irr: Curve, curve_spread=NullCurve(), curve_inf=NullCurve()):
+class Liability:
+    def __init__(self, val_date: Date, dates, curve_irr: Curve, curve_spread=NullCurve(), curve_inf=NullCurve()):
         if not isinstance(val_date, Date):
-            raise ValueError("t is not a Date class")
-        if len(dates) != len(flows):
-            raise ValueError("Dates and flows must have the same length")
+            raise ValueError("val_date is not a Date class")
+        if not isinstance(curve_irr, Curve) or not isinstance(curve_spread, Curve) or not isinstance(curve_inf, Curve):
+            raise ValueError("IRR, spread, inflation curves must be a Curve class")
         self.val_date     = val_date
         self.dates        = dates
-        self.flows        = flows
         self.curve_irr    = curve_irr
         self.curve_spread = curve_spread
         self.curve_inf    = curve_inf
-        self.duration     = int(round(self.duration() * 365, 0))
+
+    def PBO(self):
+        pass
+
+
+class Liabilities(Liability):
+    def __init__(self, val_date: Date, dates, flows, curve_irr: Curve, curve_spread=NullCurve(), curve_inf=NullCurve()):
+        if len(dates) != len(flows):
+            raise ValueError("Dates and flows must have the same length")
+        super().__init__(val_date=val_date, dates=dates, curve_irr=curve_irr, curve_spread=curve_spread,
+                       curve_inf=curve_inf)
+        self.flows    = flows
+        self.duration = int(round(self.duration() * 365, 0))
 
     def __len__(self):
         return len(self.flows)
@@ -27,7 +38,7 @@ class Liabilities:
         irr = self.curve_irr.rate(self.dates)
         spread = self.curve_spread.rate(self.dates)
 
-        l   = len(self.dates    )
+        l   = len(self.dates)
         d   = [0] * l
         td  = [0] * l
         num = 0
@@ -63,6 +74,19 @@ class Liabilities:
         return d
 
 
+class LiabilitiesUK(Liability):
+    def __init__(self, val_date: Date, dates, active, deferred, pensioner, curve_irr: Curve, curve_spread=NullCurve(),
+                 curve_inf=NullCurve()):
+        if len(dates) != len(active) or len(dates) != len(deferred) or len(dates) != len(pensioner):
+            raise ValueError("Dates and flows must have the same length")
+        super().__init__(val_date=val_date, dates=dates, curve_irr=curve_irr, curve_spread=curve_spread,
+                       curve_inf=curve_inf)
+        self.active    = active
+        self.deferred  = deferred
+        self.pensioner = pensioner
+
+
+
 if __name__ == "__main__":
     import pandas as pd
     from src.curves.curve import get_curve
@@ -75,6 +99,11 @@ if __name__ == "__main__":
         apply(lambda x: Curve(name=str(x.Name.unique()[0]),
                               dates=x.Tenor.tolist(),
                               rates=x.Rate.tolist()))
+
+    Liabilities(val_date=Date(31,12,2017),
+                dates=[Date(31,12, 2018), Date(31,12, 2019), Date(31,12, 2020)],
+                flows=[1000, 2000, 3000],
+                curve_irr=curves[0])
 
     l = pd.read_excel("../../data/Datos_20180531.xlsx", sheet_name='Pasivos_Pruebas', usecols='A:i')
 
@@ -89,3 +118,9 @@ if __name__ == "__main__":
 
     print(l[0].duration)
     print(l[0].PBO())
+
+    LUK = pd.read_excel("../../UK/UK.xlsx", sheet_name="Liabilities")
+
+    LiabilitiesUK(Date(31, 5, 2018), LUK.FechaCF, LUK.Active, LUK.Deferred, LUK.Pensioner, curves['iBoxx'])
+
+

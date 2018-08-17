@@ -159,7 +159,8 @@ if __name__ == "__main__":
                         0.015345800, 0.015695800, 0.016020800, 0.016703720, 0.017590600, 0.017704851, 0.018735400,
                         0.019405200, 0.019725000])
 
-    IPCA_m = HullWhite(curve=IPCA, MRV=0.0025, MRS=0.01, val_date=valDate, t=Days(363), flag=True)
+    IPCA_m = HullWhite(curve=IPCA, MRV=0.0025, MRS=0.01, val_date=valDate, t=Days(180), flag=True)
+
     for i in IPCA_m.sim(random=0.167728385139152): print(i)
 
     iBoxx = Curve(name="iBoxx",
@@ -179,6 +180,6 @@ if __name__ == "__main__":
 
     EQ1 = LN(factor=EQ1, curve=PT_BOND, vol=0.0240619356008235, val_date=valDate, t=Days(363), flag=True)
     
-    print(EQ1.sim(2.76929645563361) - 1.06594069317654)
+    #print(EQ1.sim(2.76929645563361))
 
 

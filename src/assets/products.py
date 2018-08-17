@@ -277,7 +277,7 @@ class Portfolio:
         return "PORTFOLIO with " + str(len(self)) + " products"
 
     @staticmethod
-    def create_portfolio(list):
+    def create_portfolio(list: list):
         x = Portfolio()
         for i in list:
             x + i

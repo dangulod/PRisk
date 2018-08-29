@@ -209,11 +209,9 @@ if __name__ == "__main__":
             applymap(lambda x: Date(x.day, x.month, x.year))
 
     lia_uk = LiabilitiesUK(Date(31, 5, 2018), LUK.FechaCF, LUK.Active, LUK.Deferred, LUK.Pensioner,
-                  RLPI=RLPI, curve_irr=curves['iBoxx'], curve_inf=curves['IPCA'])
+                           RLPI=RLPI, curve_irr=curves['iBoxx'], curve_inf=curves['IPCA'])
 
     lia_uk.duration = 7206
 
     print(lia_uk.PBO())
-
-
 

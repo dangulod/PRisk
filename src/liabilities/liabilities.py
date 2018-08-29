@@ -3,6 +3,26 @@ from src.curves.curve import Curve, NullCurve, IRR
 from src.dates.conventions import Actual365, Thirty360
 from src.dates.calendar import Calendar
 
+import math
+
+def round_d(x, digits=2):
+    d = (10 ** digits)
+    x = x * d
+    return round(x) / d
+
+
+def round_up(x, digits=2):
+    d = (10 ** digits)
+    x = x * d
+    return  math.ceil(x) / d
+
+
+def round_down(x, digits=2):
+    d = (10 ** digits)
+    x = x * d
+    return math.floor(x) / d
+
+
 class Liability:
     def __init__(self, val_date: Date, dates, curve_irr: Curve, curve_spread=NullCurve(), curve_inf=NullCurve()):
         if not isinstance(val_date, Date):
@@ -75,7 +95,7 @@ class Liabilities(Liability):
 
 
 class LiabilitiesUK(Liability):
-    def __init__(self, val_date: Date, dates, active, deferred, pensioner, curve_irr: Curve, curve_spread=NullCurve(),
+    def __init__(self, val_date: Date, dates, active, deferred, pensioner, RLPI, curve_irr: Curve, curve_spread=NullCurve(),
                  curve_inf=NullCurve()):
         if len(dates) != len(active) or len(dates) != len(deferred) or len(dates) != len(pensioner):
             raise ValueError("Dates and flows must have the same length")
@@ -84,7 +104,65 @@ class LiabilitiesUK(Liability):
         self.active    = active
         self.deferred  = deferred
         self.pensioner = pensioner
+        self.RLPI      = RLPI
+        self.duration  = 1
 
+
+    def PBO(self):
+
+        curve = self.curve_irr + self.curve_spread
+
+        m = self.val_date.month()
+        inf = self.curve_inf.rate(self.val_date + Days(self.duration))[0]
+        r = curve.rate(self.val_date + Days(self.duration))[0]
+        u_i = round_d(round_up(inf * 4) / 4, 4)
+        l_i = round_d(round_down(inf * 4) / 4, 4)
+
+        l = len(self.dates)
+        d = 0
+        td = [0] * l
+
+        if inf <= self.RLPI.RPI.max():
+            inf_a = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-A'][RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-A'][RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-A'][RLPI.RPI == l_i])
+        else:
+            inf_a = self.RLPI['LPI-A'].max()
+
+        if inf <= self.RLPI.RPI.max():
+            inf_d = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-D'][RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-D'][RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-D'][RLPI.RPI == l_i])
+        else:
+            inf_d = self.RLPI['LPI-D'].max()
+
+        if inf <= self.RLPI.RPI.max():
+            inf_p = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-P'][RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-P'][RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-P'][RLPI.RPI == l_i])
+        else:
+            inf_p = self.RLPI['LPI-P'].max()
+
+        for i in range(0, l): td[i] = Thirty360.yearFraction(self.dates[0], self.dates[i] + Years(1), Calendar())
+        for i in range(0, l - 1):
+            d += ((((12 - m) / 12) * self.active[i] * ((1 + inf_a) ** td[i])) +
+                  ((m / 12) * self.active[i + 1] * ((1 + inf_a) ** td[i + 1]))) / \
+                 ((1 + r) ** (td[i] - 0.5))
+            d += ((((12 - m) / 12) * self.deferred[i] * ((1 + inf_d) ** td[i])) +
+                  ((m / 12) * self.deferred[i + 1] * ((1 + inf_d) ** td[i + 1]))) / \
+                 ((1 + r) ** (td[i] - 0.5))
+            d += ((((12 - m) / 12) * self.pensioner[i] * ((1 + inf_p) ** td[i])) +
+                  ((m / 12) * self.pensioner[i + 1] * ((1 + inf_p) ** td[i + 1]))) / \
+                 ((1 + r) ** (td[i] - 0.5))
+
+        d += (((12 - m) / 12) * self.active[l - 1] * ((1 + inf_a) ** td[l - 1])) / \
+             ((1 + r) ** td[l - 1])
+        d += (((12 - m) / 12) * self.deferred[l - 1] * ((1 + inf_d) ** td[l - 1])) / \
+             ((1 + r) ** td[l - 1])
+        d += (((12 - m) / 12) * self.pensioner[l - 1] * ((1 + inf_p) ** td[l - 1])) / \
+             ((1 + r) ** td[l - 1])
+
+        return d
 
 
 if __name__ == "__main__":
@@ -119,8 +197,23 @@ if __name__ == "__main__":
     print(l[0].duration)
     print(l[0].PBO())
 
-    LUK = pd.read_excel("../../UK/UK.xlsx", sheet_name="Liabilities")
+    LUK  = pd.read_excel("../../UK/UK.xlsx", sheet_name="Liabilities")
+    RLPI = pd.read_excel("../../UK/UK.xlsx", sheet_name="UK RPI-LPI")
 
-    LiabilitiesUK(Date(31, 5, 2018), LUK.FechaCF, LUK.Active, LUK.Deferred, LUK.Pensioner, curves['iBoxx'])
+    LUK[LUK.select_dtypes(include=['datetime']).columns] = \
+        LUK[LUK.select_dtypes(include=['datetime']).columns]. \
+            applymap(lambda x: Date(x.day, x.month, x.year))
+
+    RLPI[RLPI.select_dtypes(include=['datetime']).columns] = \
+        RLPI[RLPI.select_dtypes(include=['datetime']).columns]. \
+            applymap(lambda x: Date(x.day, x.month, x.year))
+
+    lia_uk = LiabilitiesUK(Date(31, 5, 2018), LUK.FechaCF, LUK.Active, LUK.Deferred, LUK.Pensioner,
+                  RLPI=RLPI, curve_irr=curves['iBoxx'], curve_inf=curves['IPCA'])
+
+    lia_uk.duration = 7206
+
+    print(lia_uk.PBO())
+
 
 

@@ -1,6 +1,7 @@
+import pandas as pd
 from math import exp
 from src.utils.utils import which, where
-from src.dates.date import Date, Periods
+from src.dates.date import Date, Periods, Years
 from src.utils.getters import get_base
 from src.dates.calendar import Calendar
 import numpy as np
@@ -55,7 +56,7 @@ def linearInterpol(x, y, x0):
 
 
 class Curve:
-    def __init__(self, name, dates, rates, compounding=compounded, base="ACT/365",
+    def __init__(self, name, dates, rates, compounding=compounded, base="ACT/360",
                  interpolator=linear, calendar=Calendar()):
         if len(dates) != len(rates):
             raise ValueError("Dates and Rates must have the same length")
@@ -103,6 +104,40 @@ class Curve:
                 rates[i] = r1[i] + r2[i]
 
             curva = Curve(name=self.name + "+" + other.name,
+                          dates=dates,
+                          rates=rates,
+                          interpolator=self.interpolator,
+                          compounding=self.compounding,
+                          calendar=self.calendar)
+            curva.base = self.base
+            return curva
+        if isinstance(other, NullCurve):
+            return self
+
+    def __sub__(self, other):
+        if isinstance(other, float):
+            l = len(self)
+            dates = [0] * l
+            rates = [0] * l
+            for i in range(0, l):
+                dates[i] = self.dates[i]
+                rates[i] = self.rates[i] - other
+            x = Curve(name=self.name, dates=dates, rates=rates, compounding=self.compounding,
+                      interpolator=self.interpolator, calendar=self.calendar)
+            x.base = self.base
+            return x
+
+        if isinstance(other, Curve):
+            dates = list(np.unique(self.dates + other.dates))
+            l = len(dates)
+            rates = [0] * l
+            r1 = self.rate(dates)
+            r2 = other.rate(dates)
+
+            for i in range(0, l):
+                rates[i] = r1[i] - r2[i]
+
+            curva = Curve(name=self.name + "-" + other.name,
                           dates=dates,
                           rates=rates,
                           interpolator=self.interpolator,
@@ -174,6 +209,76 @@ class Curve:
         return dis
 
 
+    def extrapolationCDS(self, rf: float, RR: float, val_date: Date, reqyears: int):
+
+        '''
+        En extrapolacion debería entrar el calendar de la curva. Como en los inputs ya tenemos días, asumimos que esos son los
+        días para la base que sea (ACT/365, ACT/360), pero si lo queremos pasar a años, importa ya que hay que dividir esos
+        días por 365 o 360 respectivamente
+        '''
+
+        inputtenors = list(map(lambda x: round((x - val_date)/360,2), self.dates))
+        a = np.trunc(inputtenors)
+        reqtenors = np.arange(start=(int(a[0])), stop=(int(a[-1])+1), step=int(1)).tolist()
+
+        q = int(0)
+        reqrates = [0] * len(reqtenors)
+        reqdates = [0] * len(reqtenors)
+
+        for t in reqtenors:
+            reqdates[q] = val_date + Years(t)
+            reqrates[q] = linear(x = self.dates, y = self.rates, x0 = reqdates[q])[0]
+            q += 1
+        l =len(reqtenors)
+        ll = reqyears - reqtenors[-1] + l
+        Q = [0] * ll
+        df = [0] * ll
+        p = [0] * ll
+        yf = [0] * ll
+        factor = [0] * ll
+
+
+        yf[0] = reqtenors[0]
+        df[0] = 1/( 1 + rf) ** (reqtenors[0])
+        p[0] = min(reqrates[0] * yf[0] /(1- RR),1)
+        Q[0] = p[0]
+        factor[0] = df[0] * yf[0]
+
+        for i in range(1, l):
+            yf[i] = reqtenors[i] - reqtenors[i-1]
+            df[i] = 1 / (1 + rf) ** (reqtenors[i])
+            p[i] = min(reqrates[i] * yf[i] / (1 - RR), 1)
+            factor[i] = factor[i-1] + df[i] * (1 - Q[i-1]) * yf[i]
+
+            p[i] = min(p[i] + factor[i-1] * ((reqrates[i] - reqrates[i-1])/((1 - RR) * df[i] * (1 - Q[i-1]))),1)
+            Q[i] = Q[i-1] + (1 - Q[i-1]) * p[i]
+
+
+        s = i + 1
+        v = 0
+        outdates = [0] * (ll - s)
+        outrates = [0] * (ll - s)
+        for i in range(s, ll):
+
+            outdates[v] = (val_date + Years(reqtenors[-1]+ 1 + v))
+
+            p[i] = p[i-1]
+            Q[i] = Q[i - 1] + (1 - Q[i - 1]) * p[i]
+            yf[i] = int(reqtenors[-1] + 1 + v) - int(reqtenors[-1] + v)
+            df[i] = 1 / (1 + rf) ** (int(reqtenors[-1] + 1 + v))
+            factor[i] = factor[i - 1] + df[i] * (1 - Q[i - 1]) * yf[i]
+
+            outrates[v] = ((p[i] + (reqrates[i-1] * factor[i-1]) / ((1 - RR) * df[i] * (1 - Q[i-1]))) / ((factor[i-1] / ((1 - RR) * df[i] * (1 - Q[i-1]))) + (1/(1 - RR))))
+            reqrates.append(outrates[v])
+
+            v += 1
+
+        self.dates = self.dates + outdates
+        self.rates = self.rates + outrates
+
+
+
+
 class NullCurve(Curve):
     def __init__(self):
         self.name  = ""
@@ -203,6 +308,29 @@ class IRR(Curve):
     def __add__(self, other):
         if isinstance(other, NullCurve):
             return self
+
+    def __sub__(self, other):
+        if isinstance(other, NullCurve):
+            return self
+
+class SerieCurve:
+    def __init__(self, dates, curves):
+        self.dates  = dates
+        self.Curves = curves
+
+    def getTenor(self, required : Periods):
+        l = len(self.dates)
+
+        rates = [0] * l
+
+        for f in range(0, l):
+            ratedate = self.dates[f] + required
+            rates[f] = self.Curves[f].rate(ratedate)[0]
+
+        df       = pd.Series(rates)
+        df.index = self.dates
+        return df
+
 
 def get_curve(name, array):
     if ( name == "None" ):

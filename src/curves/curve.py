@@ -208,17 +208,15 @@ class Curve:
 
         return dis
 
-
-    def extrapolationCDS(self, rf: float, RR: float, val_date: Date, reqyears: int):
-
+    def extrapolationCDS(self, rf: float, RR: float, val_date: Date, reqyears:int):
         '''
         En extrapolacion debería entrar el calendar de la curva. Como en los inputs ya tenemos días, asumimos que esos son los
         días para la base que sea (ACT/365, ACT/360), pero si lo queremos pasar a años, importa ya que hay que dividir esos
         días por 365 o 360 respectivamente
         '''
-
         inputtenors = list(map(lambda x: round((x - val_date)/360,2), self.dates))
-        a = np.trunc(inputtenors)
+        a = np.unique(np.trunc(inputtenors))
+        a = a[a > 0]
         reqtenors = np.arange(start=(int(a[0])), stop=(int(a[-1])+1), step=int(1)).tolist()
 
         q = int(0)
@@ -275,8 +273,6 @@ class Curve:
 
         self.dates = self.dates + outdates
         self.rates = self.rates + outrates
-
-
 
 
 class NullCurve(Curve):

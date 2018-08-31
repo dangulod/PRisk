@@ -64,6 +64,8 @@ class HullWhite(Model):
         self.vart = self.MRV ** 2 / (2 * self.MRS) * (1 - exp(-2 * self.MRS * self.dt))
 
     def sim(self, random):
+        if not self.flag: return self.curve.rates
+
         rt = self.ert + sqrt(self.vart) * random
 
         l = len(self.curve.rates)
@@ -121,6 +123,7 @@ class LN(Model):
         self.dFWD = 1 / self.curve.discount(self.val_date, self.val_date + self.t)[0]
 
     def sim(self, random):
+        if not self.flag: return self.factor.factor[0]
         return self.factor.factor[0] * self.dFWD * exp(
             -0.5 * self.vol ** 2 * self.dt + self.vol * sqrt(self.dt) * random)
 
@@ -140,6 +143,7 @@ class LnFwd(Model):
         self.fwd = self.curve.FWD(self.val_date, self.t)
 
     def sim(self, random):
+        if not self.flag: return self.curve.rates
         l = len(self.curve)
         rates = [0] * l
 

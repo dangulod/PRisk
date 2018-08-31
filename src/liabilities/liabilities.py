@@ -123,23 +123,23 @@ class LiabilitiesUK(Liability):
         td = [0] * l
 
         if inf <= self.RLPI.RPI.max():
-            inf_a = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-A'][RLPI.RPI == u_i]) -
-                                            float(self.RLPI['LPI-A'][RLPI.RPI == l_i])) + \
-                    float(self.RLPI['LPI-A'][RLPI.RPI == l_i])
+            inf_a = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-A'][self.RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-A'][self.RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-A'][self.RLPI.RPI == l_i])
         else:
             inf_a = self.RLPI['LPI-A'].max()
 
         if inf <= self.RLPI.RPI.max():
-            inf_d = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-D'][RLPI.RPI == u_i]) -
-                                            float(self.RLPI['LPI-D'][RLPI.RPI == l_i])) + \
-                    float(self.RLPI['LPI-D'][RLPI.RPI == l_i])
+            inf_d = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-D'][self.RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-D'][self.RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-D'][self.RLPI.RPI == l_i])
         else:
             inf_d = self.RLPI['LPI-D'].max()
 
         if inf <= self.RLPI.RPI.max():
-            inf_p = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-P'][RLPI.RPI == u_i]) -
-                                            float(self.RLPI['LPI-P'][RLPI.RPI == l_i])) + \
-                    float(self.RLPI['LPI-P'][RLPI.RPI == l_i])
+            inf_p = (inf - l_i) / 0.0025 * (float(self.RLPI['LPI-P'][self.RLPI.RPI == u_i]) -
+                                            float(self.RLPI['LPI-P'][self.RLPI.RPI == l_i])) + \
+                    float(self.RLPI['LPI-P'][self.RLPI.RPI == l_i])
         else:
             inf_p = self.RLPI['LPI-P'].max()
 

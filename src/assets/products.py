@@ -5,6 +5,7 @@ from src.curves.curve import Curve, IRR, NullCurve
 from src.utils.getters import get_base
 from src.simulation.factor import Factor
 
+from scipy.optimize import minimize
 
 class Product:
     def __init__(self, val_date: Date, t: Periods, **kwargs):
@@ -72,8 +73,12 @@ class Bond(BondZeroCoupon):
         self.c_dates = self.couponPayment()[1:]
         self.first = self.couponPayment()[0]
 
+    def proxyCoupon(self):
+        fit = lambda coupon: abs(VAN(coupon=coupon, bond=self) - self.nominal)
+        return max(float(minimize(fit, self.coupon, method='Nelder-Mead', tol=1e-9).x[0]), 0)
+
     def couponPayment(self):
-        if (self.val_date > self.matDate): return 0
+        if self.val(self.val_date): return [0]
         i = 1
         coup = [self.matDate]
         while ((self.matDate - Months(self.frequency * i) >= self.val_date) and
@@ -107,6 +112,11 @@ class Bond(BondZeroCoupon):
         value += 1 * disc[l - 1]
 
         return value * self.nominal
+
+
+def VAN(coupon, bond: Bond):
+    bond.coupon = coupon
+    return bond.NPV()
 
 
 class BondFloating(Bond):
@@ -259,6 +269,17 @@ class Cash(Product):
     def NPV(self):
         return self.nominal
 
+####
+
+class ProxyBond(Bond):
+    def __init__(self, val_date: Date, t: Periods, nominal, startDate, matDate, curve_irr, curve_spread, coupon,
+                 frequency, base="ACT/365", calendar=Calendar(), **kwargs):
+        super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
+                         curve_irr=curve_irr, curve_spread=curve_spread, base=base, calendar=calendar,
+                         coupon=coupon, frequency=frequency, **kwargs)
+        self.coupon = self.proxyCoupon()
+
+####
 
 class Portfolio:
     def __init__(self):
@@ -353,7 +374,7 @@ if __name__ == "__main__":
     bc = BondZeroCoupon(val_date=val_date, t=t, nominal=1, startDate=Date(3, 4, 2015), matDate=Date(30, 7, 2020),
                         curve_irr=PT_BOND, curve_spread=PT_BOND, base="ACT/365")
 
-    b1 = Bond(val_date=val_date, t=t, nominal=4776736, startDate=Date(4, 3, 2015), matDate=Date(30, 7, 2030),
+    b1 = Bond(val_date=val_date, t=t, nominal=4776736, startDate=Date(4, 3, 2015), matDate=val_date,
               curve_irr=ES_BOND, coupon=0.0178246127679505, curve_spread=NullCurve(),
               frequency=1, base="ACT/365")
 
@@ -381,6 +402,19 @@ if __name__ == "__main__":
                       matDate=Date(3, 5, 2025), curve_irr=IT_BOND, curve_spread=NullCurve(), coupon=0,
                       base="30/360", frequency=4)
 
+    b9 = ProxyBond(val_date=Date(31, 5, 2017), t=Years(1), nominal=4776736, startDate=Date(4, 3, 2015), matDate=Date(30, 7, 2030),
+                   curve_irr=PT_BOND, coupon=0.0178246127679505, curve_spread=NullCurve(),
+                   frequency=1, base="ACT/365")
+
+    b10 = ProxyBond(val_date=val_date + Days(1), t=t, nominal=100, startDate=Date(31, 12, 2014), matDate=val_date + Years(1),
+                    curve_irr=IR_iBoxx, coupon=0.0206653578940817, curve_spread=NullCurve(),
+                    frequency=1, base="ACT/365")
+
+
+    print(b10.coupon)
+    print(b10.NPV())
+
+'''
     print(bc.NPV())
     print(b1.NPV())
     print(bu.NPV())
@@ -391,6 +425,8 @@ if __name__ == "__main__":
     print(b6.NPV())
     print(b7.NPV())
     print(b8.NPV())
+    print(b9.NPV())
+'''
 
-    for i in b1.couponPayment(): print(i)
+#    for i in b1.couponPayment(): print(i)
 

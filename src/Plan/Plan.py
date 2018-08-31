@@ -1,11 +1,11 @@
 from src.assets.products import Portfolio
-from src.liabilities.liabilities import Liabilities
+from src.liabilities.liabilities import Liability
 from src.dates.date import Date, Years, Periods
 
 
 class Plan:
-    def __init__(self, val_date: Date, t: Periods, liabilities: Liabilities, assets=Portfolio()):
-        if not isinstance(liabilities, Liabilities):
+    def __init__(self, val_date: Date, t: Periods, liabilities: Liability, assets=Portfolio()):
+        if not isinstance(liabilities, Liability):
             raise ValueError("liabilities must be class Liability class")
         if not isinstance(assets, Portfolio):
             raise ValueError("assets must be a Portfolio class")

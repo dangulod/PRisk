@@ -19,7 +19,7 @@ from src.simulation.sim_factor import randCor
 from src.simulation.factor import Factor, copy_factor, get_factor
 import src.simulation.models as models
 
-if (len(sys.argv) == 1): sys.argv = sys.argv + ['Portugal/PT_config.xlsx']
+if (len(sys.argv) == 1): sys.argv = sys.argv + ['Brazil/BR_config.xlsx']
 
 # if (len(sys.argv) == 1): sys.argv = sys.argv + ['Germany/DE_config.xlsx']
 # if (len(sys.argv) == 1): sys.argv = sys.argv + ['UK/UK_config.xlsx']
@@ -172,6 +172,10 @@ if params['assets']:
     print("Reading assets data...", end="")
     a['curve_irr'] = a['curve_irr'].apply(lambda x: get_curve(x, sim_curves))
     a['curve_spread'] = a['curve_spread'].apply(lambda x: get_curve(x, sim_curves))
+    try :
+        a['curve_index'] = a['curve_index'].apply(lambda x: get_curve(x, sim_curves))
+    except:
+        pass
     if params['factors']: a['factor'] = a['factor'].apply(lambda x: get_factor(x, sim_factor))
     a['args'] = a.drop(['Pais', 'Plan', 'pricer'], axis=1).\
         apply(lambda x: x.to_dict(), axis=1)

@@ -75,7 +75,7 @@ class Bond(BondZeroCoupon):
 
     def proxyCoupon(self):
         fit = lambda coupon: abs(VAN(coupon=coupon, bond=self) - self.nominal)
-        return max(float(minimize(fit, self.coupon, method='Nelder-Mead', tol=1e-9).x[0]), 0)
+        return float(minimize(fit, self.coupon, method='Nelder-Mead', tol=1e-9).x[0])
 
     def couponPayment(self):
         if self.val(self.val_date): return [0]
@@ -149,11 +149,11 @@ class BondFloating(Bond):
 
 
 class NTN_B_P(BondZeroCoupon):
-    def __init__(self, val_date: Date, t: Periods, nominal, startDate, matDate, curve_irr, IPCA, IPCA_p: Curve, day=15,
+    def __init__(self, val_date: Date, t: Periods, nominal, startDate: Date, matDate, curve_irr, IPCA, IPCA_p: Curve,
                  curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil(), **kwargs):
         super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
                          curve_irr=curve_irr, curve_spread=curve_spread, base=base, calendar=calendar, **kwargs)
-        self.day = day
+        self.day = startDate.day()
         self.IPCA = IPCA
         self.curve_index = IPCA_p
 
@@ -181,12 +181,12 @@ class NTN_B_P(BondZeroCoupon):
 
 
 class IndexedNominalBond(Bond):
-    def __init__(self, val_date: Date, t: Periods, nominal, startDate, matDate, curve_irr, coupon, frequency, index,
-                 curve_index: Curve, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar(), **kwargs):
+    def __init__(self, val_date: Date, t: Periods, nominal, startDate: Date, matDate, curve_irr, coupon, frequency, index,
+                 curve_index: Curve, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar(), **kwargs):
         super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
                          curve_irr=curve_irr, curve_spread=curve_spread, coupon=coupon, frequency=frequency,
                          base=base, calendar=calendar, **kwargs)
-        self.day = day
+        self.day = startDate.day()
         self.index = index
         self.curve_index = curve_index
 
@@ -208,7 +208,7 @@ class IndexedNominalBond(Bond):
         nd = Date(self.day, m, y)
         pd = nd - Months(1)
         # x  = ( val_date - pd ) / ( nd - pd )
-        x = (self.val_date + self.t - pd) / (nd + t - pd)
+        x = (self.val_date + self.t - pd) / (nd + self.t - pd)
 
         p = self.curve_index.rate(self.val_date + self.t)[0]
 
@@ -235,12 +235,21 @@ class IndexedNominalBond(Bond):
         return self.VNA() * value
 
 
+class ProxyIndexedNominalBond(IndexedNominalBond):
+    def __init__(self, val_date: Date, t: Periods, nominal, startDate, matDate, curve_irr, coupon, frequency, index,
+                 curve_index: Curve, curve_spread=NullCurve(), base="BUSS/252", calendar=Calendar(), **kwargs):
+        super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
+                         curve_irr=curve_irr, curve_spread=curve_spread, coupon=coupon, frequency=frequency,
+                         base=base, calendar=calendar, index=1, curve_index=curve_index, **kwargs)
+        self.coupon = max(self.proxyCoupon(), 0)
+
+
 class NTN_B(IndexedNominalBond):
     def __init__(self, val_date: Date, t: Periods, nominal, startDate, matDate, curve_irr, coupon, frequency, IPCA,
-                 IPCA_p, day=15, curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil(), **kwargs):
+                 IPCA_p, curve_spread=NullCurve(), base="BUSS/252", calendar=Brazil(), **kwargs):
         super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
                          curve_irr=curve_irr,
-                         coupon=coupon, frequency=frequency, index=IPCA, curve_index=IPCA_p, day=day,
+                         coupon=coupon, frequency=frequency, index=IPCA, curve_index=IPCA_p,
                          curve_spread=curve_spread, base=base, calendar=calendar, **kwargs)
 
     def VNA(self):
@@ -277,7 +286,7 @@ class ProxyBond(Bond):
         super().__init__(val_date=val_date, t=t, nominal=nominal, startDate=startDate, matDate=matDate,
                          curve_irr=curve_irr, curve_spread=curve_spread, base=base, calendar=calendar,
                          coupon=coupon, frequency=frequency, **kwargs)
-        self.coupon = self.proxyCoupon()
+        self.coupon = max(self.proxyCoupon(), 0)
 
 ####
 
@@ -384,13 +393,13 @@ if __name__ == "__main__":
 
     b3 = NTN_B(val_date=val_date, t=t, nominal=1000, startDate=Date(15, 5, 2005), matDate=Date(15, 5, 2017),
                base="BUSS/252", curve_irr=IRR(0.0532), coupon=0.06, calendar=Brazil(),
-               frequency=2, day=15, IPCA=2.097583332, IPCA_p=IRR(0.0053))
+               frequency=2, IPCA=2.097583332, IPCA_p=IRR(0.0053))
 
     b4 = NTN_B_P(val_date=val_date, t=t, nominal=1000, startDate=Date(15, 7, 2000), matDate=Date(15, 5, 2015),
                  curve_irr=IRR(0.0874), IPCA=1.532670225, IPCA_p=IRR(0))
 
     b5 = NTN_B(val_date=val_date, t=t, nominal=1000, startDate=Date(8, 9, 2004), matDate=Date(1, 4, 2008),
-               curve_irr=IRR(0.0853), coupon=6, frequency=2, IPCA=1.754670875, IPCA_p=IRR(1), day=1)
+               curve_irr=IRR(0.0853), coupon=6, frequency=2, IPCA=1.754670875, IPCA_p=IRR(1))
 
     b6 = NTN_B(val_date=val_date, t=t, nominal=160, startDate=Date(15, 5, 2015), matDate=Date(15, 5, 2023),
                curve_irr=IRR(0.048892272), IPCA=1, IPCA_p=IRR(0.029734), coupon=0.06, frequency=2)
@@ -410,9 +419,19 @@ if __name__ == "__main__":
                     curve_irr=IR_iBoxx, coupon=0.0206653578940817, curve_spread=NullCurve(),
                     frequency=1, base="ACT/365")
 
+    b11 = IndexedNominalBond(val_date=Date(15, 5, 2016), t=t, nominal=1900, startDate=Date(15, 5, 2005),
+                             matDate=Date(15, 5, 2017), base="BUSS/252", curve_irr=IRR(0.0532),
+                             coupon=0.06, calendar=Brazil(), frequency=2, index=2.097583332,
+                             curve_index=IRR(0.0053))
 
-    print(b10.coupon)
-    print(b10.NPV())
+    b12 = ProxyIndexedNominalBond(val_date=Date(15, 5, 2016), t=t, nominal=4150, startDate=Date(15, 5, 2005),
+                                  matDate=Date(15, 5, 2017), base="BUSS/252", curve_irr=IRR(0.0532),
+                                  coupon=0.06, calendar=Brazil(), frequency=2, index=1, curve_index=IRR(0.0053))
+    print(b11.NPV())
+    print(b12.coupon)
+    print(b12.NPV())
+
+    print(b5.day)
 
 '''
     print(bc.NPV())
@@ -426,7 +445,11 @@ if __name__ == "__main__":
     print(b7.NPV())
     print(b8.NPV())
     print(b9.NPV())
+    print(b10.NPV())
+    
+    for i in b1.couponPayment(): print(i)
 '''
 
-#    for i in b1.couponPayment(): print(i)
+
+
 
